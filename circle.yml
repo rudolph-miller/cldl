@@ -1,0 +1,23 @@
+general:
+  branches:
+    ignore:
+      - gh-pages
+
+machine:
+  environment:
+    LISP: sbcl
+    PATH: ~/.roswell/bin:$PATH
+
+dependencies:
+  pre:
+    - curl -L https://raw.githubusercontent.com/snmsts/roswell/master/scripts/install-for-ci.sh | sh
+    - ros run -- --version
+    - ros install prove
+
+  cache_directories:
+    - ~/.roswell
+    
+test:
+  override:
+    - ros run -- --version
+    - run-prove cldl-test.asd
