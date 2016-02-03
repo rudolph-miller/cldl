@@ -1,4 +1,4 @@
-# Cldl
+# CLDL
 [![Build Status](https://circleci.com/gh/Rudolph-Miller/cldl.svg?style=shield)](https://circleci.com/gh/Rudolph-Miller/cldl)
 
 __WIP__
