@@ -14,11 +14,11 @@
   :license "MIT"
   :homepage "https://github.com/Rudolph-Miller/cldl"
   :depends-on (:cl-syntax
-               :cl-syntax-annot
-               )
+               :cl-syntax-annot)
   :components ((:module "src"
                 :components
-                ((:file "cldl"))))
+                ((:file "util")
+                 (:file "cldl"))))
   :description ""
   :long-description
   #.(with-open-file (stream (merge-pathnames
