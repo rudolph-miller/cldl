@@ -13,7 +13,8 @@
   :license "MIT"
   :homepage "https://github.com/Rudolph-Miller/cldl"
   :depends-on (:cldl
-               :prove)
+               :prove
+               :split-sequence)
   :components ((:module "t"
                 :serial t
                 :components

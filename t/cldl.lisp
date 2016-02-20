@@ -2,7 +2,9 @@
 (defpackage cldl-test
   (:use :cl
         :cldl
-        :prove))
+        :prove)
+  (:import-from :split-sequence
+                :split-sequence))
 (in-package :cldl-test)
 
 (plan nil)
@@ -26,7 +28,9 @@
     (loop with result = nil
           for line = (read-line in nil nil)
           while line
-          do (push line result)
+          do (push (mapcar #'parse-integer
+                           (split-sequence #\Space line))
+                   result)
           finally (return result))))
 
 (finalize)
