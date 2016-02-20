@@ -15,8 +15,10 @@
   :depends-on (:cldl
                :prove)
   :components ((:module "t"
+                :serial t
                 :components
-                ((:test-file "cldl"))))
+                ((:static-file "data.txt")
+                 (:test-file "cldl"))))
   :description "Test system for cldl."
 
   :defsystem-depends-on (:prove-asdf)
