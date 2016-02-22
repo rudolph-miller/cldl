@@ -91,16 +91,3 @@
 "Return output-units from genarted units"
 (defun output-units (units)
   (car (last units)))
-
-@export
-@doc
-"Activate function.
-Set output-value as activated input-value.
-Default: Rectified Linear Unit"
-(defgeneric activate (unit)
-  (:method ((unit hidden-unit))
-    (let ((input (unit-input-value unit)))
-      (setf (unit-output-value unit)
-            (if (< input 0)
-                0
-                input)))))

@@ -15,8 +15,7 @@
                 #:unit-delta
                 #:input-units
                 #:hidden-unit-set
-                #:output-units
-                #:activate)
+                #:output-units)
   (:import-from #:cldl.connection
                 #:connection-left-unit
                 #:connection-right-unit
@@ -64,6 +63,20 @@ Default: For multi class classification"
           collecting ( - (unit-output-value unit)
                          (if (= i expected) 1 0)))))
 
+
+@export
+@doc
+"Activation function for hidden-units.
+Set output-value as activated input-value.
+Default: Rectified Linear Unit"
+(defvar *HIDDEN-ACTIVATION-FUNCTION*
+  (lambda (hidden-units)
+    (dolist (unit hidden-units)
+      (let ((input (unit-input-value unit)))
+        (setf (unit-output-value unit)
+              (if (< input 0)
+                  0
+                  input))))))
 @export
 @doc
 "Backpropagation function for hidden-units."
@@ -126,11 +139,14 @@ Default: For multi class classification"
           do (setf (unit-input-value input-unit) value
                    (unit-output-value input-unit) value))
     (dolist (hidden-units (hidden-unit-set dnn-units))
-      (dolist (unit hidden-units)
-        (when (typep unit 'hidden-unit)
+      (let ((hidden-units-without-bias (remove-if-not #'(lambda (unit)
+                                                          (typep unit 'hidden-unit))
+                                                      hidden-units)))
+        (dolist (unit hidden-units)
           (setf (unit-input-value unit)
-                (calculate-unit-input-value unit))
-          (activate unit))))
+                (calculate-unit-input-value unit)))
+        (funcall *HIDDEN-ACTIVATION-FUNCTION*
+                 hidden-units-without-bias)))
     (let ((output-units (output-units dnn-units)))
       (dolist (unit output-units)
         (setf (unit-input-value unit)
@@ -180,7 +196,7 @@ Default: For multi class classification"
                                                              (typep unit 'hidden-unit))
                                                          hidden-units))
                (hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
-                                                hidden-units-without-bias)))
+                                                 hidden-units-without-bias)))
           (backpropagate hidden-units-without-bias hidden-backpropagations)))
       (dolist (outer-connections (dnn-connections dnn))
         (dolist (inner-connectios outer-connections)
