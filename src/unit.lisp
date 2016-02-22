@@ -55,7 +55,7 @@
 @export
 (defun generate-units (num-of-units)
   (when (<= (length num-of-units) 2)
-    (error "At least 1 hidden units required"))
+    (error "At least 1 hidden units required."))
   (let (input-units hidden-unit-set output-units)
     (push (make-instance 'bias-unit) input-units)
     (dotimes (_ (car num-of-units))
@@ -73,3 +73,16 @@
     (append (list (nreverse input-units))
             (nreverse hidden-unit-set)
             (list (nreverse output-units)))))
+
+@export
+@doc
+"Activate function.
+Set output-value as activated input-value.
+Default: Rectified Linear Unit"
+(defgeneric activate (unit)
+  (:method ((unit hidden-unit))
+    (let ((input (unit-input-value unit)))
+    (setf (unit-output-value unit)
+          (if (< input 0)
+              0
+              input)))))
