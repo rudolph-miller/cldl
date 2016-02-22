@@ -3,6 +3,8 @@
   (:use #:cl
         #:annot.doc
         #:annot.class)
+  (:import-from #:cldl.util
+                #:pick-randomly)
   (:import-from #:cldl.unit
                 #:hidden-unit
                 #:output-unit
@@ -15,7 +17,10 @@
                 #:activate)
   (:import-from #:cldl.connection
                 #:connection-left-unit
-                #:connection-weight))
+                #:connection-weight)
+  (:import-from #:cldl.data
+                #:data-input
+                #:data-expected))
 (in-package :cldl.dnn)
 
 (syntax:use-syntax :annot)
@@ -31,6 +36,20 @@ Default: Softmax function"
       (mapcar #'(lambda (value)
                   (/ value sum))
               list))))
+
+@export
+@doc
+"Error function
+Default: For multi class classification"
+(defvar *ERROR-FUNCTION*
+  (lambda (output-units expected)
+    (* -1
+       (reduce #'+
+               (loop for unit in output-units
+                     for i from 0
+                     collecting (* (if (= i expected) 1 0)
+                                   (log (unit-output-value unit))))))))
+
 
 @export
 @export-accessors
@@ -49,7 +68,10 @@ Default: Softmax function"
                          :type number
                          :initarg :learning-coefficient
                          :accessor dnn-learning-coefficient)
-   (mini-batch-size :initform 10)))
+   (mini-batch-size :initform 10
+                    :type number
+                    :initarg :mini-batch-size
+                    :accessor dnn-mini-batch-size)))
 
 (defmethod print-object ((dnn dnn) stream)
   (print-unreadable-object (dnn stream :type t :identity t)
@@ -59,13 +81,6 @@ Default: Softmax function"
               learning-coefficient
               mini-batch-size))))
 
-(defun max-unit (units)
-  (loop with max-unit = (car units)
-        for unit in (cdr units)
-        if (> (unit-output-value unit) (unit-output-value max-unit))
-          do (setq max-unit unit)
-        finally (return max-unit)))
-
 (defun calculate-unit-input-value (unit)
   (reduce #'+
           (mapcar #'(lambda (connection)
@@ -74,6 +89,7 @@ Default: Softmax function"
                          (connection-weight connection)))
                   (unit-left-connections unit))))
 
+@export
 (defun predict (dnn input)
   (let ((dnn-units (dnn-units dnn)))
     (loop for input-unit in (cdr (input-units dnn-units))
@@ -95,4 +111,14 @@ Default: Softmax function"
         (loop for unit in output-units
               for value in output-values
               do (setf (unit-output-value unit) value))
-        (max-unit output-units)))))
+        output-units))))
+
+(defun test (dnn data-set)
+  (let ((picked-data-set (pick-randomly data-set (dnn-mini-batch-size dnn))))
+    (/ (reduce #'+
+               (mapcar #'(lambda (data)
+                           (funcall *ERROR-FUNCTION*
+                                    (predict dnn (data-input data))
+                                    (data-expected data)))
+                       picked-data-set))
+       (length picked-data-set))))
