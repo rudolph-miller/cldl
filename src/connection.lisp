@@ -3,11 +3,19 @@
   (:use #:cl
         #:annot.doc
         #:annot.class)
+  (:import-from #:cldl.util
+                #:normal-random)
   (:import-from #:cldl.unit
-                #:unit))
+                #:unit
+                #:bias-unit
+                #:unit-left-connections
+                #:unit-right-connections))
 (in-package :cldl.connection)
 
 (syntax:use-syntax :annot)
+
+@export
+(defvar +DEFAULT-WEIGHT+ 0)
 
 @export
 @export-accessors
@@ -38,3 +46,32 @@
               ":WEIGHT ~a :WEIGHT-DIFF ~a"
               weight
               weight-diff))))
+
+@export
+@doc
+"Connect given units and return connection-set"
+(defun connect (units)
+  (flet ((%connect (left-unit right-unit)
+           (let* ((weight (if (typep left-unit 'bias-unit)
+                              +DEFAULT-WEIGHT+
+                              (+ +DEFAULT-WEIGHT+ (normal-random 0 1))))
+                  (connection (make-instance 'connection
+                                             :weight weight
+                                             :left-unit left-unit
+                                             :right-unit right-unit)))
+             (setf (unit-left-connections right-unit)
+                   (append (unit-left-connections right-unit)
+                           (list connection)))
+             connection)))
+    (mapcon #'(lambda (list)
+                (when (cdr list)
+                  (let ((left-units (car list))
+                        (right-units (cadr list)))
+                    (list
+                     (mapcar #'(lambda (left-unit)
+                                 (mapcan #'(lambda (right-unit)
+                                             (unless (typep right-unit 'bias-unit)
+                                               (list (%connect left-unit right-unit))))
+                                         right-units))
+                             left-units)))))
+            units)))

@@ -7,8 +7,6 @@
 
 (syntax:use-syntax :annot)
 
-(defvar +DEFAULT-WEIGHT+ 0)
-
 @export
 @export-accessors
 @doc
