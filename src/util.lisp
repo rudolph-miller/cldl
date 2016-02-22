@@ -39,3 +39,19 @@
                 do (push index used-indexes)
                    (push (elt list index) result)
               finally (return result)))))
+
+@export
+@doc
+"Get mean and standard-deviation"
+(defun mean-and-standard-deviation (list)
+  (let* ((length (length list))
+         (sum (reduce #'+ list))
+         (mean (/ sum length))
+         (variance (/
+                    (reduce #'+
+                            (mapcar #'(lambda (x)
+                                        (expt (- x mean) 2))
+                                    list))
+                    length))
+         (standard-deviation (sqrt variance)))
+    (values mean standard-deviation)))
