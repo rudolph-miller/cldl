@@ -82,6 +82,12 @@
 
 @export
 @doc
+"Return hidden-units from generated units"
+(defun hidden-units (units)
+  (butlast (cdr units)))
+
+@export
+@doc
 "Return output-units from genarted units"
 (defun output-units (units)
   (car (last units)))
