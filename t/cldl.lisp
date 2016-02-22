@@ -5,6 +5,7 @@
   (:import-from #:split-sequence
                 #:split-sequence)
   (:import-from #:cldl.unit
+                #:unit-output-value
                 #:generate-units
                 #:output-units)
   (:import-from #:cldl.connection
@@ -12,7 +13,8 @@
   (:import-from #:cldl.data
                 #:make-data-set
                 #:data-input
-                #:data-expected)
+                #:data-expected
+                #:normalize-data-set)
   (:import-from #:cldl.dnn
                 #:dnn
                 #:dnn-units
@@ -52,14 +54,21 @@
                      :input (cdr data)))
            (data))))
 
+(defun max-unit (units)
+  (loop with max-unit = (car units)
+        for unit in (cdr units)
+        if (> (unit-output-value unit) (unit-output-value max-unit))
+          do (setq max-unit unit)
+        finally (return max-unit)))
+
 (defun test ()
   (let* ((units (generate-units (list 4 4 4 3)))
          (connections (connect units))
-         (data-set (data-set))
+         (data-set (normalize-data-set (data-set)))
          (dnn (make-instance 'dnn :units units :connections connections))
          (correc-count 0))
     (dolist (data data-set)
-      (when (= (position (predict dnn (data-input data))
+      (when (= (position (max-unit (predict dnn (data-input data)))
                          (output-units (dnn-units dnn)))
                (data-expected data))
         (incf correc-count)))
