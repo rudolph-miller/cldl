@@ -76,6 +76,18 @@
 
 @export
 @doc
+"Return input-units from generated units"
+(defun input-units (units)
+  (car units))
+
+@export
+@doc
+"Return output-units from genarted units"
+(defun output-units (units)
+  (car (last units)))
+
+@export
+@doc
 "Activate function.
 Set output-value as activated input-value.
 Default: Rectified Linear Unit"
