@@ -1,10 +1,12 @@
 (in-package :cl-user)
 (defpackage cldl-test
-  (:use :cl
-        :cldl
-        :prove)
-  (:import-from :split-sequence
-                :split-sequence))
+  (:use #:cl
+        #:cldl
+        #:prove)
+  (:import-from #:split-sequence
+                #:split-sequence)
+  (:import-from #:cldl.data
+                #:make-data-set))
 (in-package :cldl-test)
 
 (plan nil)
@@ -32,5 +34,12 @@
                            (split-sequence #\Space line))
                    result)
           finally (return result))))
+
+(defun data-set ()
+  (make-data-set
+   (mapcar #'(lambda (data)
+               (list :expected (car data)
+                     :input (cdr data)))
+           (data))))
 
 (finalize)
