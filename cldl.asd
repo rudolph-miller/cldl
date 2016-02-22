@@ -18,6 +18,7 @@
   :components ((:module "src"
                 :components
                 ((:file "util")
+                 (:file "unit")
                  (:file "dnn")
                  (:file "cldl"))))
   :description ""
