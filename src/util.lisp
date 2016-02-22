@@ -23,3 +23,19 @@
        (* standard-deviation
           (sqrt (* -2 (log x)))
           (cos (* 2 pi y))))))
+
+@export
+@doc
+"Pick given count numbers of items from the given list"
+(defun pick-randomly (list count)
+  (let ((length (length list)))
+    (if (<= length count)
+        list
+        (loop with result = nil
+              with used-indexes = nil
+              while (< (length result) count)
+              for index = (random length)
+              unless (find index used-indexes)
+                do (push index used-indexes)
+                   (push (elt list index) result)
+              finally (return result)))))
