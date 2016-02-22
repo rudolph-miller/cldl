@@ -11,13 +11,17 @@
                 #:unit-input-value
                 #:unit-output-value
                 #:unit-left-connections
+                #:unit-right-connections
+                #:unit-delta
                 #:input-units
                 #:hidden-unit-set
                 #:output-units
                 #:activate)
   (:import-from #:cldl.connection
                 #:connection-left-unit
-                #:connection-weight)
+                #:connection-right-unit
+                #:connection-weight
+                #:connection-weight-diff)
   (:import-from #:cldl.data
                 #:data-input
                 #:data-expected))
@@ -27,9 +31,9 @@
 
 @export
 @doc
-"Function for calculate output-values.
+"Activation functon for output-units
 Default: Softmax function"
-(defvar *OUTPUT-FUNCTION*
+(defvar *OUTPUT-ACTIVATION-FUNCTION*
   (lambda (output-values)
     (let* ((list (mapcar #'exp output-values))
            (sum (reduce #'+ list)))
@@ -39,9 +43,9 @@ Default: Softmax function"
 
 @export
 @doc
-"Error function
+"Error function.
 Default: For multi class classification"
-(defvar *ERROR-FUNCTION*
+(defvar *OUTPUT-ERROR-FUNCTION*
   (lambda (output-units expected)
     (* -1
        (reduce #'+
@@ -50,6 +54,31 @@ Default: For multi class classification"
                      collecting (* (if (= i expected) 1 0)
                                    (log (unit-output-value unit))))))))
 
+@export
+@doc
+"Backpropagation function for output-units."
+(defvar *OUTPUT-BACKPROPAGATION-FUNCTION*
+  (lambda (output-units expected)
+    (loop for unit in output-units
+          for i from 0
+          collecting ( - (unit-output-value unit)
+                         (if (= i expected) 1 0)))))
+
+@export
+@doc
+"Backpropagation function for hidden-units."
+(defvar *HIDDEN-BACKPROPAGATION-FUNCTION*
+  (lambda (hidden-units)
+    (mapcar #'(lambda (unit)
+                (reduce #'+
+                        (mapcar #'(lambda (connection)
+                                    (* (unit-delta (connection-right-unit connection))
+                                       (connection-weight connection)
+                                       (if (< (unit-input-value unit) 0)
+                                           0
+                                           1)))
+                                (unit-right-connections unit))))
+            hidden-units)))
 
 @export
 @export-accessors
@@ -106,15 +135,18 @@ Default: For multi class classification"
       (dolist (unit output-units)
         (setf (unit-input-value unit)
               (calculate-unit-input-value unit)))
-      (let ((output-values (funcall *OUTPUT-FUNCTION*
+      (let ((output-values (funcall *OUTPUT-ACTIVATION-FUNCTION*
                                     (mapcar #'unit-input-value output-units))))
         (loop for unit in output-units
               for value in output-values
               do (setf (unit-output-value unit) value))
         output-units))))
 
+(defun pick-data-set (dnn data-set)
+  (pick-randomly data-set (dnn-mini-batch-size dnn)))
+
 (defun test (dnn data-set)
-  (let ((picked-data-set (pick-randomly data-set (dnn-mini-batch-size dnn))))
+  (let ((picked-data-set (pick-data-set dnn data-set)))
     (/ (reduce #'+
                (mapcar #'(lambda (data)
                            (funcall *ERROR-FUNCTION*
@@ -122,3 +154,38 @@ Default: For multi class classification"
                                     (data-expected data)))
                        picked-data-set))
        (length picked-data-set))))
+
+@export
+@doc
+"Train dnn by given data-set"
+(defun train (dnn data-set)
+  (flet ((backpropagate (units backpropagations)
+           (loop for unit in units
+                 for delta in backpropagations
+                 do (setf (unit-delta unit) delta)
+                    (dolist (connection (unit-left-connections unit))
+                      (incf (connection-weight-diff connection)
+                            (* delta (unit-output-value
+                                      (connection-left-unit connection))))))))
+    (let ((picked-data-set (pick-data-set dnn data-set)))
+      (dolist (data picked-data-set)
+        (predict dnn (data-input data))
+        (let* ((output-units (output-units (dnn-units dnn)))
+               (output-backpropagations (funcall *OUTPUT-BACKPROPAGATION-FUNCTION*
+                                                 (output-units (dnn-units dnn))
+                                                 (data-expected data))))
+          (backpropagate output-units output-backpropagations)))
+      (dolist (hidden-units (reverse (hidden-unit-set (dnn-units dnn))))
+        (let* ((hidden-units-without-bias (remove-if-not #'(lambda (unit)
+                                                             (typep unit 'hidden-unit))
+                                                         hidden-units))
+               (hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
+                                                hidden-units-without-bias)))
+          (backpropagate hidden-units-without-bias hidden-backpropagations)))
+      (dolist (outer-connections (dnn-connections dnn))
+        (dolist (inner-connectios outer-connections)
+          (dolist (connection inner-connectios)
+            (decf (connection-weight connection)
+                  (* (dnn-learning-coefficient dnn)
+                     (connection-weight-diff connection)))
+            (setf (connection-weight-diff connection) 0)))))))

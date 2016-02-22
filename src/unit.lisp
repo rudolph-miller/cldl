@@ -100,7 +100,7 @@ Default: Rectified Linear Unit"
 (defgeneric activate (unit)
   (:method ((unit hidden-unit))
     (let ((input (unit-input-value unit)))
-    (setf (unit-output-value unit)
-          (if (< input 0)
-              0
-              input)))))
+      (setf (unit-output-value unit)
+            (if (< input 0)
+                0
+                input)))))
