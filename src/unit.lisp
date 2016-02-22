@@ -51,3 +51,25 @@
 
 @export
 (defclass output-unit (unit) ())
+
+@export
+(defun generate-units (num-of-units)
+  (when (<= (length num-of-units) 2)
+    (error "At least 1 hidden units required"))
+  (let (input-units hidden-unit-set output-units)
+    (push (make-instance 'bias-unit) input-units)
+    (dotimes (_ (car num-of-units))
+      (push (make-instance 'input-unit) input-units))
+    (loop for (i rest) on (cdr num-of-units)
+          if rest
+            do (let (hidden-units)
+                 (push (make-instance 'bias-unit) hidden-units)
+                 (dotimes (_ i)
+                   (push (make-instance 'hidden-unit) hidden-units))
+                 (push (nreverse hidden-units) hidden-unit-set))
+          else
+            do (dotimes (_ i)
+                 (push (make-instance 'output-unit) output-units)))
+    (append (list (nreverse input-units))
+            (nreverse hidden-unit-set)
+            (list (nreverse output-units)))))
