@@ -20,3 +20,18 @@
           :type (or null list)
           :initarg :input
           :accessor data-input)))
+
+(defmethod print-object ((data data) stream)
+  (print-unreadable-object (data stream :type t :identity t)
+    (with-slots (expected input) data
+      (format stream ":EXPECTED ~a :INPUT ~a" expected input))))
+
+@export
+(defun make-data (&key expected input)
+  (make-instance 'data :expected expected :input input))
+
+@export
+(defun make-data-set (list)
+  (mapcar #'(lambda (data)
+              (apply #'make-data data))
+          list))
