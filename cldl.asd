@@ -19,6 +19,7 @@
                 :components
                 ((:file "util")
                  (:file "unit")
+                 (:file "connection")
                  (:file "dnn")
                  (:file "cldl"))))
   :description ""
