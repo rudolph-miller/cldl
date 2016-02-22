@@ -63,15 +63,12 @@
           do (setq max-unit unit)
         finally (return max-unit)))
 
-
 (defun take (n list)
   (loop for (item . rest) on list
         for i from 0 below (1- n)
         while rest
         collecting item into result
-        finally (return (values (append result
-                                        (list item))
-                                rest))))
+        finally (return (values (append result (list item)) rest))))
 
 (defun separete-data-set (data-set)
   (let ((size (floor (/ (length data-set) 10))))
@@ -86,7 +83,10 @@
   (let* ((units (generate-units (list 4 4 4 3)))
          (connections (connect units))
          (data-sets (separete-data-set (normalize-data-set (data-set))))
-         (dnn (make-instance 'dnn :units units :connections connections))
+         (dnn (make-instance 'dnn
+                             :units units
+                             :connections connections
+                             :learning-coefficient 0.001))
          (correc-count 0)
          (test-count 0))
     (dolist (data-set data-sets)
