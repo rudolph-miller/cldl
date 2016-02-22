@@ -161,11 +161,14 @@ Default: Rectified Linear Unit"
 (defun pick-data-set (dnn data-set)
   (pick-randomly data-set (dnn-mini-batch-size dnn)))
 
+@export
+@doc
+"Test dnn"
 (defun test (dnn data-set)
   (let ((picked-data-set (pick-data-set dnn data-set)))
     (/ (reduce #'+
                (mapcar #'(lambda (data)
-                           (funcall *ERROR-FUNCTION*
+                           (funcall *OUTPUT-ERROR-FUNCTION*
                                     (predict dnn (data-input data))
                                     (data-expected data)))
                        picked-data-set))
