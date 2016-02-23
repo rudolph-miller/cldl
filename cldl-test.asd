@@ -18,8 +18,12 @@
   :components ((:module "t"
                 :serial t
                 :components
-                ((:static-file "data.txt")
-                 (:test-file "cldl"))))
+                ((:module "data"
+                  :serial t
+                  :components
+                  ((:static-file "iris.txt")))
+                 (:test-file "cldl")
+                 (:test-file "iris"))))
   :description "Test system for cldl."
 
   :defsystem-depends-on (:prove-asdf)
