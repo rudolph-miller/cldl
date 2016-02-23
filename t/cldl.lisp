@@ -13,8 +13,7 @@
   (:import-from #:cldl.data
                 #:make-data-set
                 #:data-input
-                #:data-expected
-                #:normalize-data-set)
+                #:data-expected)
   (:import-from #:cldl.dnn
                 #:dnn
                 #:dnn-units
@@ -44,9 +43,10 @@
     (loop with result = nil
           for line = (read-line in nil nil)
           while line
-          do (push (mapcar #'parse-integer
-                           (split-sequence #\Space line))
-                   result)
+          do (setq result
+                   (append result
+                           (list (mapcar #'parse-integer
+                                         (split-sequence #\Space line)))))
           finally (return result))))
 
 (defun data-set ()
@@ -82,7 +82,7 @@
 (defun main (&optional (training-count 0))
   (let* ((units (generate-units (list 4 4 4 3)))
          (connections (connect units))
-         (data-sets (separete-data-set (normalize-data-set (data-set))))
+         (data-sets (separete-data-set (data-set)))
          (dnn (make-instance 'dnn
                              :units units
                              :connections connections
@@ -102,7 +102,8 @@
                               (append data-set train-data-set)))
              (loop repeat training-count
                    do (train dnn train-data-set)
-                   until (< (test dnn data-set) 0.01))
+                   until (and (< (test dnn data-set) 0.01)
+                              (princ "Break! ")))
              (let ((tmp 0))
                (dolist (data test-data-set)
                  (incf test-count)
