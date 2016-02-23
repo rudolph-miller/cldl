@@ -22,6 +22,9 @@
                 #:function-set-error)
   (:import-from #:cldl.layer
                 #:layer
+                #:input-layer
+                #:hidden-layer
+                #:output-layer
                 #:layer-units
                 #:layer-function-set
                 #:activate
@@ -94,27 +97,31 @@
           standard-deviations))
 
 @export
+"Returns output values"
 (defun predict (dnn input)
-  (let ((layers (dnn-layers dnn)))
-    (map nil
-         #'(lambda (input-unit value)
-             (setf (unit-input-value input-unit) value
-                   (unit-output-value input-unit) value))
-         (layer-units (car layers))
-         (normalize-input input
-                          (dnn-input-means dnn)
-                          (dnn-input-standard-deviations dnn)))
-    (dolist (layer (cdr layers))
-      (let ((units (layer-units layer)))
-        (dolist (unit units)
-          (setf (unit-input-value unit)
-                (calculate-unit-input-value unit)))
-        (map nil
-             #'(lambda (unit value)
-                 (setf (unit-output-value unit) value))
-             units
-             (activate layer))))
-    (layer-units (car (last layers)))))
+  (dolist (layer (dnn-layers dnn))
+    (etypecase layer
+      (input-layer
+       (map nil
+            #'(lambda (input-unit value)
+                (setf (unit-input-value input-unit) value
+                      (unit-output-value input-unit) value))
+            (layer-units layer)
+            (normalize-input input
+                             (dnn-input-means dnn)
+                             (dnn-input-standard-deviations dnn))))
+      ((or hidden-layer output-layer)
+       (let ((units (layer-units layer)))
+         (dolist (unit units)
+           (setf (unit-input-value unit)
+                 (calculate-unit-input-value unit)))
+         (map nil
+              #'(lambda (unit value)
+                  (setf (unit-output-value unit) value))
+              units
+              (activate layer))))))
+  (mapcar #'unit-output-value
+          (layer-units (output-layer (dnn-layers dnn)))))
 
 (defun pick-data-set (dnn data-set)
   (pick-randomly data-set (dnn-mini-batch-size dnn)))
@@ -131,8 +138,7 @@
     (/ (reduce #'+
                (mapcar #'(lambda (data)
                            (funcall error-function
-                                    (mapcar #'unit-output-value
-                                            (predict dnn (data-input data)))
+                                    (predict dnn (data-input data))
                                     (data-expected data)))
                        picked-data-set))
        (length picked-data-set))))

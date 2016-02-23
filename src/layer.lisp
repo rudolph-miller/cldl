@@ -84,6 +84,10 @@
         collecting (make-layer type num-of-units function-set)))
 
 @export
+(defun output-layer (layers)
+  (car (last layers)))
+
+@export
 (defgeneric activate (layer)
   (:method ((layer layer))
     (let* ((function-set (layer-function-set layer))
