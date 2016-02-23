@@ -50,23 +50,22 @@ Default: Softmax function"
 "Error function.
 Default: For multi class classification"
 (defparameter *OUTPUT-ERROR-FUNCTION*
-  (lambda (output-units expected)
+  (lambda (output-values expected)
     (* -1
        (reduce #'+
-               (loop for unit in output-units
+               (loop for value in output-values
                      for i from 0
                      collecting (* (if (= i expected) 1 0)
-                                   (log (unit-output-value unit))))))))
+                                   (log value)))))))
 
 @export
 @doc
 "Backpropagation function for output-units."
 (defparameter *OUTPUT-BACKPROPAGATION-FUNCTION*
-  (lambda (output-units expected)
-    (loop for unit in output-units
+  (lambda (output-values expected)
+    (loop for value in output-values
           for i from 0
-          collecting (- (unit-output-value unit)
-                        (if (= i expected) 1 0)))))
+          collecting (- value (if (= i expected) 1 0)))))
 
 
 @export
@@ -190,7 +189,8 @@ Default: Rectified Linear Unit"
     (/ (reduce #'+
                (mapcar #'(lambda (data)
                            (funcall *OUTPUT-ERROR-FUNCTION*
-                                    (predict dnn (data-input data))
+                                    (mapcar #'unit-output-value
+                                            (predict dnn (data-input data)))
                                     (data-expected data)))
                        picked-data-set))
        (length picked-data-set))))
@@ -235,7 +235,8 @@ Default: Rectified Linear Unit"
           (predict dnn (data-input data))
           (let* ((output-units (output-units (dnn-units dnn)))
                  (output-backpropagations (funcall *OUTPUT-BACKPROPAGATION-FUNCTION*
-                                                   (output-units (dnn-units dnn))
+                                                   (mapcar #'unit-output-value
+                                                           (output-units (dnn-units dnn)))
                                                    (data-expected data))))
             (backpropagate output-units output-backpropagations)))
         (dolist (hidden-units (reverse (hidden-unit-set (dnn-units dnn))))
