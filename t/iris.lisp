@@ -6,26 +6,18 @@
                 #:read-file-lines)
   (:import-from #:split-sequence
                 #:split-sequence)
-  (:import-from #:cldl.unit
-                #:unit-output-value
-                #:output-units)
-  (:import-from #:cldl.functions
+  (:import-from #:cldl
                 #:softmax
-                #:rectified-linear-unit)
-  (:import-from #:cldl.layer
+                #:rectified-linear-unit
                 #:input-layer
                 #:hidden-layer
                 #:output-layer
-                #:make-layers)
-  (:import-from #:cldl.connection
-                #:connect)
-  (:import-from #:cldl.data
+                #:make-layers
+                #:connect
                 #:make-data-set
                 #:data-input
-                #:data-expected)
-  (:import-from #:cldl.dnn
+                #:data-expected
                 #:dnn
-                #:dnn-layers
                 #:predict
                 #:test
                 #:train))
