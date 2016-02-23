@@ -6,8 +6,12 @@
                 #:split-sequence)
   (:import-from #:cldl.unit
                 #:unit-output-value
-                #:generate-units
                 #:output-units)
+  (:import-from #:cldl.layer
+                #:input-layer
+                #:hidden-layer
+                #:output-layer
+                #:make-layers)
   (:import-from #:cldl.connection
                 #:connect)
   (:import-from #:cldl.data
@@ -16,7 +20,7 @@
                 #:data-expected)
   (:import-from #:cldl.dnn
                 #:dnn
-                #:dnn-units
+                #:dnn-layers
                 #:predict
                 #:test
                 #:train))
@@ -68,7 +72,7 @@
         for i from 0 below (1- n)
         while rest
         collecting item into result
-        finally (return (values (append result (list item)) rest))))
+        finally (return ( (append result (list item)) rest))))
 
 (defun separete-data-set (data-set)
   (let ((size (floor (/ (length data-set) 10))))
@@ -80,11 +84,14 @@
                (setq data-set tail)))))
 
 (defun main (&optional (training-count 0))
-  (let* ((units (generate-units (list 4 4 4 3)))
-         (connections (connect units))
+  (let* ((layers (make-layers '((input-layer . 4)
+                                (hidden-layer . 4)
+                                (hidden-layer . 4)
+                                (output-layer . 3))))
+         (connections (connect layers))
          (data-sets (separete-data-set (data-set)))
          (dnn (make-instance 'dnn
-                             :units units
+                             :layers layers
                              :connections connections
                              :learning-coefficient 0.001))
          (correc-count 0)
@@ -108,7 +115,7 @@
                (dolist (data test-data-set)
                  (incf test-count)
                  (when (= (position (max-unit (predict dnn (data-input data)))
-                                    (output-units (dnn-units dnn)))
+                                    (layer-units (car (last (dnn-layers dnn)))))
                           (data-expected data))
                    (incf correc-count)
                    (incf tmp)))
