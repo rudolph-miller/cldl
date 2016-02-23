@@ -61,4 +61,3 @@
 "Normalize value by mean and standard-deviation"
 (defun normalize (x mean standard-deviation)
   (/ (- x mean) standard-deviation))
-              

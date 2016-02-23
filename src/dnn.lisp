@@ -4,7 +4,9 @@
         #:annot.doc
         #:annot.class)
   (:import-from #:cldl.util
-                #:pick-randomly)
+                #:pick-randomly
+                #:mean-and-standard-deviation
+                #:normalize)
   (:import-from #:cldl.unit
                 #:hidden-unit
                 #:output-unit
@@ -22,6 +24,7 @@
                 #:connection-weight
                 #:connection-weight-diff)
   (:import-from #:cldl.data
+                #:data
                 #:data-input
                 #:data-expected))
 (in-package :cldl.dnn)
@@ -115,7 +118,15 @@ Default: Rectified Linear Unit"
    (mini-batch-size :initform 10
                     :type number
                     :initarg :mini-batch-size
-                    :accessor dnn-mini-batch-size)))
+                    :accessor dnn-mini-batch-size)
+   (input-means :initform nil
+                :type list
+                :initarg :input-means
+                :accessor dnn-input-means)
+   (input-standard-deviations :initform nil
+                              :type list
+                              :initarg :input-standard-deviations
+                              :accessor dnn-input-standard-deviations)))
 
 (defmethod print-object ((dnn dnn) stream)
   (print-unreadable-object (dnn stream :type t :identity t)
@@ -133,11 +144,19 @@ Default: Rectified Linear Unit"
                          (connection-weight connection)))
                   (unit-left-connections unit))))
 
+(defun normalize-input (input means standard-deviations)
+  (loop for value in input
+        for mean in means
+        for standard-deviation in standard-deviations
+        collecting (normalize value mean standard-deviation)))
+
 @export
 (defun predict (dnn input)
   (let ((dnn-units (dnn-units dnn)))
     (loop for input-unit in (cdr (input-units dnn-units))
-          for value in input
+          for value in (normalize-input input
+                                        (dnn-input-means dnn)
+                                        (dnn-input-standard-deviations dnn))
           do (setf (unit-input-value input-unit) value
                    (unit-output-value input-unit) value))
     (dolist (hidden-units (hidden-unit-set dnn-units))
@@ -153,12 +172,12 @@ Default: Rectified Linear Unit"
       (dolist (unit output-units)
         (setf (unit-input-value unit)
               (calculate-unit-input-value unit)))
-        (loop for unit in output-units
-              for value in (funcall *OUTPUT-ACTIVATION-FUNCTION*
-                                    (mapcar #'unit-input-value
-                                            output-units))
-              do (setf (unit-output-value unit) value))
-        output-units)))
+      (loop for unit in output-units
+            for value in (funcall *OUTPUT-ACTIVATION-FUNCTION*
+                                  (mapcar #'unit-input-value
+                                          output-units))
+            do (setf (unit-output-value unit) value))
+      output-units)))
 
 (defun pick-data-set (dnn data-set)
   (pick-randomly data-set (dnn-mini-batch-size dnn)))
@@ -176,6 +195,25 @@ Default: Rectified Linear Unit"
                        picked-data-set))
        (length picked-data-set))))
 
+(defun calculate-means-and-standard-deviations (data-set)
+  (let* ((length (length (data-input (car data-set))))
+         (t-array (make-array length :initial-element nil))
+         (means nil)
+         (standard-deviations nil))
+    (loop for data in data-set
+          for i from 0
+          do (loop for value in (data-input data)
+                   for j from 0
+                   do (push value (aref t-array j))))
+    (loop for i from 0 below length
+          for list = (aref t-array i)
+          do (multiple-value-bind (mean standard-deviation)
+                 (mean-and-standard-deviation list)
+               (push mean means)
+               (push standard-deviation standard-deviations)))
+    (values (nreverse means)
+            (nreverse standard-deviations))))
+
 @export
 @doc
 "Train dnn by given data-set"
@@ -188,25 +226,29 @@ Default: Rectified Linear Unit"
                       (incf (connection-weight-diff connection)
                             (* delta (unit-output-value
                                       (connection-left-unit connection))))))))
-    (let ((picked-data-set (pick-data-set dnn data-set)))
-      (dolist (data picked-data-set)
-        (predict dnn (data-input data))
-        (let* ((output-units (output-units (dnn-units dnn)))
-               (output-backpropagations (funcall *OUTPUT-BACKPROPAGATION-FUNCTION*
-                                                 (output-units (dnn-units dnn))
-                                                 (data-expected data))))
-          (backpropagate output-units output-backpropagations)))
-      (dolist (hidden-units (reverse (hidden-unit-set (dnn-units dnn))))
-        (let* ((hidden-units-without-bias (remove-if-not #'(lambda (unit)
-                                                             (typep unit 'hidden-unit))
-                                                         hidden-units))
-               (hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
-                                                 hidden-units-without-bias)))
-          (backpropagate hidden-units-without-bias hidden-backpropagations)))
-      (dolist (outer-connections (dnn-connections dnn))
-        (dolist (inner-connectios outer-connections)
-          (dolist (connection inner-connectios)
-            (decf (connection-weight connection)
-                  (* (dnn-learning-coefficient dnn)
-                     (connection-weight-diff connection)))
-            (setf (connection-weight-diff connection) 0)))))))
+    (multiple-value-bind (means standard-deviations)
+        (calculate-means-and-standard-deviations data-set)
+      (setf (dnn-input-means dnn) means
+            (dnn-input-standard-deviations dnn) standard-deviations)
+      (let ((picked-data-set (pick-data-set dnn data-set)))
+        (dolist (data picked-data-set)
+          (predict dnn (data-input data))
+          (let* ((output-units (output-units (dnn-units dnn)))
+                 (output-backpropagations (funcall *OUTPUT-BACKPROPAGATION-FUNCTION*
+                                                   (output-units (dnn-units dnn))
+                                                   (data-expected data))))
+            (backpropagate output-units output-backpropagations)))
+        (dolist (hidden-units (reverse (hidden-unit-set (dnn-units dnn))))
+          (let* ((hidden-units-without-bias (remove-if-not #'(lambda (unit)
+                                                               (typep unit 'hidden-unit))
+                                                           hidden-units))
+                 (hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
+                                                   hidden-units-without-bias)))
+            (backpropagate hidden-units-without-bias hidden-backpropagations)))
+        (dolist (outer-connections (dnn-connections dnn))
+          (dolist (inner-connectios outer-connections)
+            (dolist (connection inner-connectios)
+              (decf (connection-weight connection)
+                    (* (dnn-learning-coefficient dnn)
+                       (connection-weight-diff connection)))
+              (setf (connection-weight-diff connection) 0))))))))
