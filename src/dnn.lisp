@@ -19,7 +19,7 @@
                 #:hidden-unit-set
                 #:output-units)
   (:import-from #:cldl.function
-                #:function-set-error)
+                #:function-set-error-function)
   (:import-from #:cldl.layer
                 #:layer
                 #:input-layer
@@ -134,7 +134,7 @@
          (layers (dnn-layers dnn))
          (output-layer (car (last layers)))
          (function-set (layer-function-set output-layer))
-         (error-function (function-set-error function-set)))
+         (error-function (function-set-error-function function-set)))
     (/ (reduce #'+
                (mapcar #'(lambda (data)
                            (funcall error-function

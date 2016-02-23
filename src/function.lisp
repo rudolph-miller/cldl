@@ -14,18 +14,24 @@
          :type string
          :initarg :name
          :accessor function-set-name)
-   (function :initform nil
-             :type (or null function)
-             :initarg :function
-             :accessor function-set-function)
-   (differentiation :initform nil
-                    :type (or null function)
-                    :initarg :differentiation
-                    :accessor function-set-differentiation)
-   (error :initform nil
-          :type (or null function)
-          :initarg :error
-          :accessor function-set-error)
+   (activation-function :initform nil
+                        :type (or null function)
+                        :initarg :activation-function
+                        :accessor function-set-activation-function)
+   (diff-of-activation-function :initform nil
+                                :type (or null function)
+                                :initarg :diff-of-activation-function
+                                :accessor function-set-diff-of-activation-function
+                                :documentation "Differential of activation function.")
+   (error-function :initform nil
+                   :type (or null function)
+                   :initarg :error
+                   :accessor function-set-error-function)
+   (diff-of-error-function :initform nil
+                           :type (or null function)
+                           :initarg :diff-of-error-function
+                           :accessor function-set-diff-of-error-function
+                           :documentation "Differential of error function.")
    (multiple-values :initform nil
                     :type boolean
                     :initarg :multiple-values
@@ -41,22 +47,27 @@
 
 (defvar *function-sets* nil)
 
+(defparameter *function-set-name-aliases*
+  '((:activation . :activation-function)
+    (:a . :activation-function)
+    (:diff-of-activation . :diff-of-activation-function)
+    (:diff-of-a . :diff-of-activation-function)
+    (:error . :error)
+    (:e . :error)
+    (:diff-of-error . :diff-of-error-function)
+    (:diff-of-e . :diff-of-error-function)))
+
 @export
 (defmacro def-function-set (name (&key multiple-values) &body definitions)
   `(push (make-instance 'function-set
                         :name ',name
                         ,@(loop for definition in definitions
                                 nconc
-                                (destructuring-bind (label lambda-list &body body)
+                                (destructuring-bind (label lambda)
                                     definition
-                                  (list (ecase label
-                                          (:function :function)
-                                          (:fn :function)
-                                          (:differentiation :differentiation)
-                                          (:diff :differentiation)
-                                          (:error :error)
-                                          (:e :error))
-                                        `(lambda ,lambda-list ,@body))))
+                                  (list (or (cdr (assoc label *function-set-name-aliases*))
+                                            label)
+                                        lambda)))
                         :multiple-values ,multiple-values)
          *function-sets*))
 

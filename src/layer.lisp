@@ -13,8 +13,9 @@
   (:import-from #:cldl.function
                 #:function-set
                 #:function-set-name
-                #:function-set-function
-                #:function-set-differentiation
+                #:function-set-activation-function
+                #:function-set-diff-of-activation-function
+                #:function-set-diff-of-error-function
                 #:function-set-multiple-values
                 #:find-function-set))
 (in-package :cldl.layer)
@@ -91,7 +92,7 @@
 (defgeneric activate (layer)
   (:method ((layer layer))
     (let* ((function-set (layer-function-set layer))
-           (function (function-set-function function-set))
+           (function (function-set-activation-function function-set))
            (units (layer-units layer))
            (input-values (mapcar #'unit-input-value units)))
       (if (function-set-multiple-values function-set)
@@ -102,7 +103,7 @@
 (defgeneric backpropagate-hidden-layer (hidden-layer)
   (:method ((hidden-layer hidden-layer))
     (let* ((function-set (layer-function-set hidden-layer))
-           (function (function-set-differentiation function-set))
+           (function (function-set-diff-of-activation-function function-set))
            (units (layer-units hidden-layer))
            (input-values (mapcar #'unit-input-value units)))
       (if (function-set-multiple-values function-set)
@@ -113,7 +114,7 @@
 (defgeneric backpropagate-output-layer (output-layer expected)
   (:method ((output-layer output-layer) expected)
     (let* ((function-set (layer-function-set output-layer))
-           (function (function-set-differentiation function-set))
+           (function (function-set-diff-of-error-function function-set))
            (units (layer-units output-layer))
            (input-values (mapcar #'unit-input-value units)))
       (if (function-set-multiple-values function-set)
