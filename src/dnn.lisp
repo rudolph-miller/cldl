@@ -163,7 +163,6 @@ Default: Rectified Linear Unit"
          (normalize-input input
                           (dnn-input-means dnn)
                           (dnn-input-standard-deviations dnn)))
-
     (dolist (hidden-layer (butlast (cdr layers)))
       (let ((hidden-units (layer-units hidden-layer)))
         (dolist (unit hidden-units)
