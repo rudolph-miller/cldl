@@ -89,19 +89,29 @@
                              :learning-coefficient 0.001))
          (correc-count 0)
          (test-count 0))
-    (dolist (data-set data-sets)
-      (let ((test-data-set (list (car data-set)
-                                 (cadr data-set)))
-            (train-data-set (cddr data-set)))
-        (loop repeat training-count
-              do (train dnn train-data-set)
-              until (< (test dnn data-set) 0.01))
-        (dolist (data test-data-set)
-          (incf test-count)
-          (when (= (position (max-unit (predict dnn (data-input data)))
-                             (output-units (dnn-units dnn)))
-                   (data-expected data))
-            (incf correc-count)))))
+    (loop for data-set in data-sets
+          for i from 0
+          for train-data-set = nil
+          for test-data-set = nil
+          do (loop for data-set in data-sets
+                   for j from 0
+                   if (= i j)
+                     do (setq test-data-set data-set)
+                   else
+                     do (setq train-data-set
+                              (append data-set train-data-set)))
+             (loop repeat training-count
+                   do (train dnn train-data-set)
+                   until (< (test dnn data-set) 0.01))
+             (let ((tmp 0))
+               (dolist (data test-data-set)
+                 (incf test-count)
+                 (when (= (position (max-unit (predict dnn (data-input data)))
+                                    (output-units (dnn-units dnn)))
+                          (data-expected data))
+                   (incf correc-count)
+                   (incf tmp)))
+               (format t "~,2f%~%" (* 100 (/ tmp (length test-data-set))))))
     (let ((rate (/ correc-count test-count)))
       (format t "Accuracy: ~,2f%" (* 100 rate))
       rate)))
