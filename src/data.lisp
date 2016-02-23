@@ -54,8 +54,8 @@
           do (multiple-value-bind (mean standard-deviation)
                  (mean-and-standard-deviation list)
                (setq means-and-standard-deviations
-                     (append (list (cons mean standard-deviation))
-                             means-and-standard-deviations))))
+                     (append means-and-standard-deviations
+                             (list (cons mean standard-deviation))))))
     (mapcar #'(lambda (data)
                 (let ((input
                         (loop for value in (data-input data)
