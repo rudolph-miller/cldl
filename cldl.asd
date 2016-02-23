@@ -15,6 +15,7 @@
   :homepage "https://github.com/Rudolph-Miller/cldl"
   :depends-on (:cl-syntax
                :cl-syntax-annot
+               :alexandria
                :closer-mop)
   :components ((:module "src"
                 :components

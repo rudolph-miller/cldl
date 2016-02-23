@@ -3,13 +3,18 @@
   (:use #:cl
         #:annot.doc
         #:annot.class)
+  (:import-from #:alexandria
+                #:when-let)
   (:import-from #:cldl.util
                 #:normal-random)
   (:import-from #:cldl.unit
                 #:unit
                 #:bias-unit
                 #:unit-left-connections
-                #:unit-right-connections))
+                #:unit-right-connections)
+  (:import-from #:cldl.layer
+                #:layer-bias-unit
+                #:layer-units))
 (in-package :cldl.connection)
 
 (syntax:use-syntax :annot)
@@ -50,7 +55,7 @@
 @export
 @doc
 "Connect given units and return connection-set"
-(defun connect (units)
+(defun connect (layers)
   (flet ((%connect (left-unit right-unit)
            (let* ((weight (if (typep left-unit 'bias-unit)
                               +DEFAULT-WEIGHT+
@@ -63,15 +68,13 @@
                    (append (unit-left-connections right-unit)
                            (list connection)))
              connection)))
-    (mapcon #'(lambda (list)
-                (when (cdr list)
-                  (let ((left-units (car list))
-                        (right-units (cadr list)))
-                    (list
-                     (mapcar #'(lambda (left-unit)
-                                 (mapcan #'(lambda (right-unit)
-                                             (unless (typep right-unit 'bias-unit)
-                                               (list (%connect left-unit right-unit))))
-                                         right-units))
-                             left-units)))))
-            units)))
+    (mapcar #'(lambda (left-layer right-layer)
+                (mapcar #'(lambda (left-unit)
+                            (mapcar #'(lambda (right-unit)
+                                        (%connect left-unit right-unit))
+                                    (layer-units right-layer)))
+                        (append (when-let ((left-bias-unit (layer-bias-unit left-layer)))
+                                  (list left-bias-unit))
+                                (layer-units left-layer))))
+            layers
+            (cdr layers))))
