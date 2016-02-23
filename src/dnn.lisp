@@ -32,19 +32,21 @@
 @doc
 "Activation functon for output-units
 Default: Softmax function"
-(defvar *OUTPUT-ACTIVATION-FUNCTION*
+(defparameter *OUTPUT-ACTIVATION-FUNCTION*
   (lambda (output-values)
     (let* ((list (mapcar #'exp output-values))
            (sum (reduce #'+ list)))
       (mapcar #'(lambda (value)
-                  (/ value sum))
+                  (apply #'/ (mapcar #'(lambda (x)
+                                         (coerce x 'double-float))
+                                     (list value sum))))
               list))))
 
 @export
 @doc
 "Error function.
 Default: For multi class classification"
-(defvar *OUTPUT-ERROR-FUNCTION*
+(defparameter *OUTPUT-ERROR-FUNCTION*
   (lambda (output-units expected)
     (* -1
        (reduce #'+
@@ -56,12 +58,12 @@ Default: For multi class classification"
 @export
 @doc
 "Backpropagation function for output-units."
-(defvar *OUTPUT-BACKPROPAGATION-FUNCTION*
+(defparameter *OUTPUT-BACKPROPAGATION-FUNCTION*
   (lambda (output-units expected)
     (loop for unit in output-units
           for i from 0
-          collecting ( - (unit-output-value unit)
-                         (if (= i expected) 1 0)))))
+          collecting (- (unit-output-value unit)
+                        (if (= i expected) 1 0)))))
 
 
 @export
@@ -69,7 +71,7 @@ Default: For multi class classification"
 "Activation function for hidden-units.
 Set output-value as activated input-value.
 Default: Rectified Linear Unit"
-(defvar *HIDDEN-ACTIVATION-FUNCTION*
+(defparameter *HIDDEN-ACTIVATION-FUNCTION*
   (lambda (hidden-units)
     (dolist (unit hidden-units)
       (let ((input (unit-input-value unit)))
@@ -151,12 +153,12 @@ Default: Rectified Linear Unit"
       (dolist (unit output-units)
         (setf (unit-input-value unit)
               (calculate-unit-input-value unit)))
-      (let ((output-values (funcall *OUTPUT-ACTIVATION-FUNCTION*
-                                    (mapcar #'unit-input-value output-units))))
         (loop for unit in output-units
-              for value in output-values
+              for value in (funcall *OUTPUT-ACTIVATION-FUNCTION*
+                                    (mapcar #'unit-input-value
+                                            output-units))
               do (setf (unit-output-value unit) value))
-        output-units))))
+        output-units)))
 
 (defun pick-data-set (dnn data-set)
   (pick-randomly data-set (dnn-mini-batch-size dnn)))
