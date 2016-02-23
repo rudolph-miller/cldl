@@ -64,9 +64,8 @@
                                              :weight weight
                                              :left-unit left-unit
                                              :right-unit right-unit)))
-             (setf (unit-left-connections right-unit)
-                   (append (unit-left-connections right-unit)
-                           (list connection)))
+             (push connection (unit-left-connections right-unit))
+             (push connection (unit-right-connections left-unit))
              connection)))
     (mapcar #'(lambda (left-layer right-layer)
                 (mapcar #'(lambda (left-unit)
