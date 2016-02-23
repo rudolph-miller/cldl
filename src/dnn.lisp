@@ -18,9 +18,15 @@
                 #:input-units
                 #:hidden-unit-set
                 #:output-units)
+  (:import-from #:cldl.function
+                #:function-set-error)
   (:import-from #:cldl.layer
                 #:layer
-                #:layer-units)
+                #:layer-units
+                #:layer-function-set
+                #:activate
+                #:backpropagate-hidden-layer
+                #:backpropagate-output-layer)
   (:import-from #:cldl.connection
                 #:connection-left-unit
                 #:connection-right-unit
@@ -33,71 +39,6 @@
 (in-package :cldl.dnn)
 
 (syntax:use-syntax :annot)
-
-@export
-@doc
-"Activation functon for output-units
-Default: Softmax function"
-(defparameter *OUTPUT-ACTIVATION-FUNCTION*
-  (lambda (output-values)
-    (let* ((list (mapcar #'exp output-values))
-           (sum (reduce #'+ list)))
-      (mapcar #'(lambda (value)
-                  (apply #'/ (mapcar #'(lambda (x)
-                                         (coerce x 'double-float))
-                                     (list value sum))))
-              list))))
-
-@export
-@doc
-"Error function.
-Default: For multi class classification"
-(defparameter *OUTPUT-ERROR-FUNCTION*
-  (lambda (output-values expected)
-    (* -1
-       (reduce #'+
-               (loop for value in output-values
-                     for i from 0
-                     collecting (* (if (= i expected) 1 0)
-                                   (log value)))))))
-
-@export
-@doc
-"Backpropagation function for output-units."
-(defparameter *OUTPUT-BACKPROPAGATION-FUNCTION*
-  (lambda (output-values expected)
-    (loop for value in output-values
-          for i from 0
-          collecting (- value (if (= i expected) 1 0)))))
-
-
-@export
-@doc
-"Activation function for hidden-units.
-Set output-value as activated input-value.
-Default: Rectified Linear Unit"
-(defparameter *HIDDEN-ACTIVATION-FUNCTION*
-  (lambda (hidden-units)
-    (mapcar #'(lambda (unit)
-                (let ((input (unit-input-value unit)))
-                  (if (< input 0) 0 input)))
-            hidden-units)))
-
-@export
-@doc
-"Backpropagation function for hidden-units."
-(defvar *HIDDEN-BACKPROPAGATION-FUNCTION*
-  (lambda (hidden-units)
-    (mapcar #'(lambda (unit)
-                (reduce #'+
-                        (mapcar #'(lambda (connection)
-                                    (* (unit-delta (connection-right-unit connection))
-                                       (connection-weight connection)
-                                       (if (< (unit-input-value unit) 0)
-                                           0
-                                           1)))
-                                (unit-right-connections unit))))
-            hidden-units)))
 
 @export
 @export-accessors
@@ -163,28 +104,17 @@ Default: Rectified Linear Unit"
          (normalize-input input
                           (dnn-input-means dnn)
                           (dnn-input-standard-deviations dnn)))
-    (dolist (hidden-layer (butlast (cdr layers)))
-      (let ((hidden-units (layer-units hidden-layer)))
-        (dolist (unit hidden-units)
+    (dolist (layer (cdr layers))
+      (let ((units (layer-units layer)))
+        (dolist (unit units)
           (setf (unit-input-value unit)
                 (calculate-unit-input-value unit)))
         (map nil
-             #'(lambda (hidden-unit value)
-                 (setf (unit-output-value hidden-unit) value))
-             hidden-units
-             (funcall *HIDDEN-ACTIVATION-FUNCTION* hidden-units))))
-    (let ((output-units (layer-units (car (last layers)))))
-      (dolist (unit output-units)
-        (setf (unit-input-value unit)
-              (calculate-unit-input-value unit)))
-      (map nil
-           #'(lambda (unit value)
-               (setf (unit-output-value unit) value))
-           output-units
-           (funcall *OUTPUT-ACTIVATION-FUNCTION*
-                    (mapcar #'unit-input-value
-                            output-units)))
-      output-units)))
+             #'(lambda (unit value)
+                 (setf (unit-output-value unit) value))
+             units
+             (activate layer))))
+    (layer-units (car (last layers)))))
 
 (defun pick-data-set (dnn data-set)
   (pick-randomly data-set (dnn-mini-batch-size dnn)))
@@ -193,10 +123,14 @@ Default: Rectified Linear Unit"
 @doc
 "Test dnn"
 (defun test (dnn data-set)
-  (let ((picked-data-set (pick-data-set dnn data-set)))
+  (let* ((picked-data-set (pick-data-set dnn data-set))
+         (layers (dnn-layers dnn))
+         (output-layer (car (last layers)))
+         (function-set (layer-function-set output-layer))
+         (error-function (function-set-error function-set)))
     (/ (reduce #'+
                (mapcar #'(lambda (data)
-                           (funcall *OUTPUT-ERROR-FUNCTION*
+                           (funcall error-function
                                     (mapcar #'unit-output-value
                                             (predict dnn (data-input data)))
                                     (data-expected data)))
@@ -215,6 +149,17 @@ Default: Rectified Linear Unit"
            (mapcar #'data-input data-set))
     (values (nreverse means)
             (nreverse standard-deviations))))
+
+(defun hidden-backpropagate (hidden-layer)
+  (mapcar #'(lambda (unit value)
+              (reduce #'+
+                      (mapcar #'(lambda (connection)
+                                  (* (unit-delta (connection-right-unit connection))
+                                     (connection-weight connection)
+                                     value))
+                              (unit-right-connections unit))))
+          (layer-units hidden-layer)
+          (backpropagate-hidden-layer hidden-layer)))
 
 @export
 @doc
@@ -237,16 +182,14 @@ Default: Rectified Linear Unit"
       (let ((picked-data-set (pick-data-set dnn data-set)))
         (dolist (data picked-data-set)
           (predict dnn (data-input data))
-          (let* ((output-units (layer-units (car (last (dnn-layers dnn)))))
-                 (output-backpropagations (funcall *OUTPUT-BACKPROPAGATION-FUNCTION*
-                                                   (mapcar #'unit-output-value
-                                                           output-units)
-                                                   (data-expected data))))
+          (let* ((output-layer (car (last (dnn-layers dnn))))
+                 (output-units (layer-units output-layer))
+                 (output-backpropagations (backpropagate-output-layer output-layer
+                                                                      (data-expected data))))
             (backpropagate output-units output-backpropagations)))
-        (dolist (hidden-layer (reverse (dnn-layers dnn)))
+        (dolist (hidden-layer (reverse (butlast (cdr (dnn-layers dnn)))))
           (let* ((hidden-units (layer-units hidden-layer))
-                 (hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
-                                                  hidden-units)))
+                 (hidden-backpropagations (hidden-backpropagate hidden-layer)))
             (backpropagate hidden-units hidden-backpropagations)))
         (dolist (outer-connections (dnn-connections dnn))
           (dolist (inner-connectios outer-connections)

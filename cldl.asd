@@ -21,9 +21,11 @@
                 :components
                 ((:file "util")
                  (:file "unit")
+                 (:file "function")
                  (:file "layer")
                  (:file "connection")
                  (:file "data")
+                 (:file "functions")
                  (:file "dnn")
                  (:file "cldl"))))
   :description ""

@@ -7,6 +7,9 @@
   (:import-from #:cldl.unit
                 #:unit-output-value
                 #:output-units)
+  (:import-from #:cldl.functions
+                #:softmax
+                #:rectified-linear-unit)
   (:import-from #:cldl.layer
                 #:input-layer
                 #:hidden-layer
@@ -84,10 +87,9 @@
                (setq data-set tail)))))
 
 (defun main (&optional (training-count 0))
-  (let* ((layers (make-layers '((input-layer . 4)
-                                (hidden-layer . 4)
-                                (hidden-layer . 4)
-                                (output-layer . 3))))
+  (let* ((layers (make-layers (list (list 'input-layer 4)
+                                    (list 'hidden-layer 10 'rectified-linear-unit)
+                                    (list 'output-layer 3 'softmax))))
          (connections (connect layers))
          (data-sets (separete-data-set (data-set)))
          (dnn (make-instance 'dnn
