@@ -18,6 +18,9 @@
                 #:input-units
                 #:hidden-unit-set
                 #:output-units)
+  (:import-from #:cldl.layer
+                #:layer
+                #:layer-units)
   (:import-from #:cldl.connection
                 #:connection-left-unit
                 #:connection-right-unit
@@ -101,10 +104,10 @@ Default: Rectified Linear Unit"
 @doc
 "Class of Deep Neural Network."
 (defclass dnn ()
-  ((units :initform nil
-          :type list
-          :initarg :units
-          :accessor dnn-units)
+  ((layers :initform nil
+           :type list
+           :initarg :layers
+           :accessor dnn-layers)
    (connections :initform nil
                 :type list
                 :initarg :connections
@@ -151,26 +154,27 @@ Default: Rectified Linear Unit"
 
 @export
 (defun predict (dnn input)
-  (let ((dnn-units (dnn-units dnn)))
+  (let ((layers (dnn-layers dnn)))
     (map nil
          #'(lambda (input-unit value)
              (setf (unit-input-value input-unit) value
                    (unit-output-value input-unit) value))
-         (input-units dnn-units)
+         (layer-units (car layers))
          (normalize-input input
                           (dnn-input-means dnn)
                           (dnn-input-standard-deviations dnn)))
 
-    (dolist (hidden-units (hidden-unit-set dnn-units))
-      (dolist (unit hidden-units)
-        (setf (unit-input-value unit)
-              (calculate-unit-input-value unit)))
-      (map nil
-           #'(lambda (hidden-unit value)
-               (setf (unit-output-value hidden-unit) value))
-           hidden-units
-           (funcall *HIDDEN-ACTIVATION-FUNCTION* hidden-units)))
-    (let ((output-units (output-units dnn-units)))
+    (dolist (hidden-layer (butlast (cdr layers)))
+      (let ((hidden-units (layer-units hidden-layer)))
+        (dolist (unit hidden-units)
+          (setf (unit-input-value unit)
+                (calculate-unit-input-value unit)))
+        (map nil
+             #'(lambda (hidden-unit value)
+                 (setf (unit-output-value hidden-unit) value))
+             hidden-units
+             (funcall *HIDDEN-ACTIVATION-FUNCTION* hidden-units))))
+    (let ((output-units (layer-units (car (last layers)))))
       (dolist (unit output-units)
         (setf (unit-input-value unit)
               (calculate-unit-input-value unit)))
@@ -234,14 +238,15 @@ Default: Rectified Linear Unit"
       (let ((picked-data-set (pick-data-set dnn data-set)))
         (dolist (data picked-data-set)
           (predict dnn (data-input data))
-          (let* ((output-units (output-units (dnn-units dnn)))
+          (let* ((output-units (layer-units (car (last (dnn-layers dnn)))))
                  (output-backpropagations (funcall *OUTPUT-BACKPROPAGATION-FUNCTION*
                                                    (mapcar #'unit-output-value
-                                                           (output-units (dnn-units dnn)))
+                                                           output-units)
                                                    (data-expected data))))
             (backpropagate output-units output-backpropagations)))
-        (dolist (hidden-units (reverse (hidden-unit-set (dnn-units dnn))))
-          (let ((hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
+        (dolist (hidden-layer (reverse (dnn-layers dnn)))
+          (let* ((hidden-units (layer-units hidden-layer))
+                 (hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
                                                   hidden-units)))
             (backpropagate hidden-units hidden-backpropagations)))
         (dolist (outer-connections (dnn-connections dnn))
