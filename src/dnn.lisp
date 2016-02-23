@@ -171,7 +171,7 @@
 @doc
 "Train dnn by given data-set"
 (defun train (dnn data-set)
-  (flet ((backpropagate (units backpropagations)
+  (flet ((backpropagate (units values)
            (map nil
                 #'(lambda (unit delta)
                     (setf (unit-delta unit) delta)
@@ -180,7 +180,7 @@
                             (* delta (unit-output-value
                                       (connection-left-unit connection))))))
                 units
-                backpropagations)))
+                values)))
     (multiple-value-bind (means standard-deviations)
         (calculate-means-and-standard-deviations data-set)
       (setf (dnn-input-means dnn) means
@@ -188,15 +188,12 @@
       (let ((picked-data-set (pick-data-set dnn data-set)))
         (dolist (data picked-data-set)
           (predict dnn (data-input data))
-          (let* ((output-layer (car (last (dnn-layers dnn))))
-                 (output-units (layer-units output-layer))
-                 (output-backpropagations (backpropagate-output-layer output-layer
-                                                                      (data-expected data))))
-            (backpropagate output-units output-backpropagations))
-          (dolist (hidden-layer (reverse (butlast (cdr (dnn-layers dnn)))))
-            (let* ((hidden-units (layer-units hidden-layer))
-                   (hidden-backpropagations (hidden-backpropagate hidden-layer)))
-              (backpropagate hidden-units hidden-backpropagations)))
+          (dolist (layer (reverse (cdr (dnn-layers dnn))))
+            (backpropagate
+             (layer-units layer)
+             (etypecase layer
+               (output-layer (backpropagate-output-layer layer (data-expected data)))
+               (hidden-layer (hidden-backpropagate layer)))))
           (dolist (outer-connections (dnn-connections dnn))
             (dolist (inner-connectios outer-connections)
               (dolist (connection inner-connectios)
