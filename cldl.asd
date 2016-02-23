@@ -14,11 +14,13 @@
   :license "MIT"
   :homepage "https://github.com/Rudolph-Miller/cldl"
   :depends-on (:cl-syntax
-               :cl-syntax-annot)
+               :cl-syntax-annot
+               :closer-mop)
   :components ((:module "src"
                 :components
                 ((:file "util")
                  (:file "unit")
+                 (:file "layer")
                  (:file "connection")
                  (:file "data")
                  (:file "dnn")
