@@ -1,7 +1,9 @@
 (in-package :cl-user)
 (defpackage cldl.util
   (:use #:cl
-        #:annot.doc))
+        #:annot.doc)
+  (:import-from #:c2mop
+                #:class-direct-subclasses))
 (in-package :cldl.util)
 
 (syntax:use-syntax :annot)
@@ -61,3 +63,14 @@
 "Normalize value by mean and standard-deviation"
 (defun normalize (x mean standard-deviation)
   (/ (- x mean) standard-deviation))
+
+@export
+(defun subclasses (class)
+  (let ((subclasses (class-direct-subclasses
+                     (etypecase class
+                       (symbol (find-class class))
+                       (class class)))))
+    (if subclasses
+        (append subclasses
+                (mapcan #'class-direct-subclasses subclasses))
+        nil)))

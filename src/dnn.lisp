@@ -75,12 +75,11 @@ Set output-value as activated input-value.
 Default: Rectified Linear Unit"
 (defparameter *HIDDEN-ACTIVATION-FUNCTION*
   (lambda (hidden-units)
-    (dolist (unit hidden-units)
-      (let ((input (unit-input-value unit)))
-        (setf (unit-output-value unit)
-              (if (< input 0)
-                  0
-                  input))))))
+    (mapcar #'(lambda (unit)
+                (let ((input (unit-input-value unit)))
+                  (if (< input 0) 0 input)))
+            hidden-units)))
+
 @export
 @doc
 "Backpropagation function for hidden-units."
@@ -144,38 +143,44 @@ Default: Rectified Linear Unit"
                   (unit-left-connections unit))))
 
 (defun normalize-input (input means standard-deviations)
-  (loop for value in input
-        for mean in means
-        for standard-deviation in standard-deviations
-        collecting (normalize value mean standard-deviation)))
+  (mapcar #'(lambda (value mean standard-deviation)
+              (normalize value mean standard-deviation))
+          input
+          means
+          standard-deviations))
 
 @export
 (defun predict (dnn input)
   (let ((dnn-units (dnn-units dnn)))
-    (loop for input-unit in (cdr (input-units dnn-units))
-          for value in (normalize-input input
-                                        (dnn-input-means dnn)
-                                        (dnn-input-standard-deviations dnn))
-          do (setf (unit-input-value input-unit) value
+    (map nil
+         #'(lambda (input-unit value)
+             (setf (unit-input-value input-unit) value
                    (unit-output-value input-unit) value))
+         (input-units dnn-units)
+         (normalize-input input
+                          (dnn-input-means dnn)
+                          (dnn-input-standard-deviations dnn)))
+
     (dolist (hidden-units (hidden-unit-set dnn-units))
-      (let ((hidden-units-without-bias (remove-if-not #'(lambda (unit)
-                                                          (typep unit 'hidden-unit))
-                                                      hidden-units)))
-        (dolist (unit hidden-units)
-          (setf (unit-input-value unit)
-                (calculate-unit-input-value unit)))
-        (funcall *HIDDEN-ACTIVATION-FUNCTION*
-                 hidden-units-without-bias)))
+      (dolist (unit hidden-units)
+        (setf (unit-input-value unit)
+              (calculate-unit-input-value unit)))
+      (map nil
+           #'(lambda (hidden-unit value)
+               (setf (unit-output-value hidden-unit) value))
+           hidden-units
+           (funcall *HIDDEN-ACTIVATION-FUNCTION* hidden-units)))
     (let ((output-units (output-units dnn-units)))
       (dolist (unit output-units)
         (setf (unit-input-value unit)
               (calculate-unit-input-value unit)))
-      (loop for unit in output-units
-            for value in (funcall *OUTPUT-ACTIVATION-FUNCTION*
-                                  (mapcar #'unit-input-value
-                                          output-units))
-            do (setf (unit-output-value unit) value))
+      (map nil
+           #'(lambda (unit value)
+               (setf (unit-output-value unit) value))
+           output-units
+           (funcall *OUTPUT-ACTIVATION-FUNCTION*
+                    (mapcar #'unit-input-value
+                            output-units)))
       output-units)))
 
 (defun pick-data-set (dnn data-set)
@@ -196,21 +201,15 @@ Default: Rectified Linear Unit"
        (length picked-data-set))))
 
 (defun calculate-means-and-standard-deviations (data-set)
-  (let* ((length (length (data-input (car data-set))))
-         (t-array (make-array length :initial-element nil))
-         (means nil)
-         (standard-deviations nil))
-    (loop for data in data-set
-          for i from 0
-          do (loop for value in (data-input data)
-                   for j from 0
-                   do (push value (aref t-array j))))
-    (loop for i from 0 below length
-          for list = (aref t-array i)
-          do (multiple-value-bind (mean standard-deviation)
-                 (mean-and-standard-deviation list)
-               (push mean means)
-               (push standard-deviation standard-deviations)))
+  (let (means standard-deviations)
+    (apply #'map
+           nil
+           #'(lambda (&rest rest)
+               (multiple-value-bind (mean standard-deviation)
+                   (mean-and-standard-deviation rest)
+                 (push mean means)
+                 (push standard-deviation standard-deviations)))
+           (mapcar #'data-input data-set))
     (values (nreverse means)
             (nreverse standard-deviations))))
 
@@ -219,13 +218,15 @@ Default: Rectified Linear Unit"
 "Train dnn by given data-set"
 (defun train (dnn data-set)
   (flet ((backpropagate (units backpropagations)
-           (loop for unit in units
-                 for delta in backpropagations
-                 do (setf (unit-delta unit) delta)
+           (map nil
+                #'(lambda (unit delta)
+                    (setf (unit-delta unit) delta)
                     (dolist (connection (unit-left-connections unit))
                       (incf (connection-weight-diff connection)
                             (* delta (unit-output-value
-                                      (connection-left-unit connection))))))))
+                                      (connection-left-unit connection))))))
+                units
+                backpropagations)))
     (multiple-value-bind (means standard-deviations)
         (calculate-means-and-standard-deviations data-set)
       (setf (dnn-input-means dnn) means
@@ -240,12 +241,9 @@ Default: Rectified Linear Unit"
                                                    (data-expected data))))
             (backpropagate output-units output-backpropagations)))
         (dolist (hidden-units (reverse (hidden-unit-set (dnn-units dnn))))
-          (let* ((hidden-units-without-bias (remove-if-not #'(lambda (unit)
-                                                               (typep unit 'hidden-unit))
-                                                           hidden-units))
-                 (hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
-                                                   hidden-units-without-bias)))
-            (backpropagate hidden-units-without-bias hidden-backpropagations)))
+          (let ((hidden-backpropagations (funcall *HIDDEN-BACKPROPAGATION-FUNCTION*
+                                                  hidden-units)))
+            (backpropagate hidden-units hidden-backpropagations)))
         (dolist (outer-connections (dnn-connections dnn))
           (dolist (inner-connectios outer-connections)
             (dolist (connection inner-connectios)
