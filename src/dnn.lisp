@@ -28,8 +28,8 @@
                 #:layer-units
                 #:layer-function-set
                 #:activate
-                #:backpropagate-hidden-layer
-                #:backpropagate-output-layer)
+                #:back-propagate-hidden-layer
+                #:back-propagate-output-layer)
   (:import-from #:cldl.connection
                 #:connection-left-unit
                 #:connection-right-unit
@@ -156,7 +156,7 @@
     (values (nreverse means)
             (nreverse standard-deviations))))
 
-(defun hidden-backpropagate (hidden-layer)
+(defun hidden-back-propagate (hidden-layer)
   (mapcar #'(lambda (unit value)
               (reduce #'+
                       (mapcar #'(lambda (connection)
@@ -165,13 +165,13 @@
                                      value))
                               (unit-right-connections unit))))
           (layer-units hidden-layer)
-          (backpropagate-hidden-layer hidden-layer)))
+          (back-propagate-hidden-layer hidden-layer)))
 
 @export
 @doc
 "Train dnn by given data-set"
 (defun train (dnn data-set)
-  (flet ((backpropagate (units values)
+  (flet ((back-propagate (units values)
            (map nil
                 #'(lambda (unit delta)
                     (setf (unit-delta unit) delta)
@@ -189,11 +189,11 @@
         (dolist (data picked-data-set)
           (predict dnn (data-input data))
           (dolist (layer (reverse (cdr (dnn-layers dnn))))
-            (backpropagate
+            (back-propagate
              (layer-units layer)
              (etypecase layer
-               (output-layer (backpropagate-output-layer layer (data-expected data)))
-               (hidden-layer (hidden-backpropagate layer)))))
+               (output-layer (back-propagate-output-layer layer (data-expected data)))
+               (hidden-layer (hidden-back-propagate layer)))))
           (dolist (outer-connections (dnn-connections dnn))
             (dolist (inner-connectios outer-connections)
               (dolist (connection inner-connectios)

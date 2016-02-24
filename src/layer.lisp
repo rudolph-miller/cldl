@@ -100,7 +100,7 @@
           (mapcar function input-values)))))
 
 @export
-(defgeneric backpropagate-hidden-layer (hidden-layer)
+(defgeneric back-propagate-hidden-layer (hidden-layer)
   (:method ((hidden-layer hidden-layer))
     (let* ((function-set (layer-function-set hidden-layer))
            (function (function-set-diff-of-activation-function function-set))
@@ -111,7 +111,7 @@
           (mapcar function input-values)))))
 
 @export
-(defgeneric backpropagate-output-layer (output-layer expected)
+(defgeneric back-propagate-output-layer (output-layer expected)
   (:method ((output-layer output-layer) expected)
     (let* ((function-set (layer-function-set output-layer))
            (function (function-set-diff-of-error-function function-set))
