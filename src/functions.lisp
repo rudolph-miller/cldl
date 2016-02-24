@@ -8,7 +8,7 @@
 (syntax:use-syntax :annot)
 
 @export 'softmax
-(def-function-set softmax (:multiple-values t)
+(def-function-set softmax (:output :multiple-values t)
   (:activation
    (lambda (output-values)
      (let* ((list (mapcar #'exp output-values))
@@ -35,7 +35,7 @@
            collecting (- value (if (= i expected) 1 0))))))
 
 @export 'rectified-linear-unit
-(def-function-set rectified-linear-unit ()
+(def-function-set rectified-linear-unit (:hidden)
   (:activation
    (lambda (value)
      (if (< value 0) 0 value)))

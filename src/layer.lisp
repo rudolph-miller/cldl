@@ -11,7 +11,8 @@
                 #:bias-unit
                 #:output-unit)
   (:import-from #:cldl.function
-                #:function-set
+                #:hidden-function-set
+                #:output-function-set
                 #:function-set-name
                 #:function-set-activation-function
                 #:function-set-diff-of-activation-function
@@ -40,7 +41,7 @@
               :initarg :unit-type
               :accessor layer-unit-type)
    (function-set :initform nil
-                 :type (or null function-set)
+                 :type null
                  :initarg :function-set
                  :accessor layer-function-set)))
 
@@ -62,11 +63,13 @@
 @export
 (defclass hidden-layer (layer)
   ((bias-unit :initform (make-instance 'bias-unit))
-   (unit-type :initform 'hidden-unit)))
+   (unit-type :initform 'hidden-unit)
+   (function-set :type hidden-function-set)))
 
 @export
 (defclass output-layer (layer)
-  ((unit-type :initform 'output-unit)))
+  ((unit-type :initform 'output-unit)
+   (function-set :type output-function-set)))
 
 @export
 (defun make-layer (type num-of-units function-set)

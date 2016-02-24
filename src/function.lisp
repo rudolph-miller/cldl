@@ -18,23 +18,31 @@
                         :type (or null function)
                         :initarg :activation-function
                         :accessor function-set-activation-function)
-   (diff-of-activation-function :initform nil
+   (multiple-values :initform nil
+                    :type boolean
+                    :initarg :multiple-values
+                    :accessor function-set-multiple-values)))
+
+@export
+@export-accessors
+(defclass hidden-function-set (function-set)
+  ((diff-of-activation-function :initform nil
                                 :type (or null function)
                                 :initarg :diff-of-activation-function
                                 :accessor function-set-diff-of-activation-function
-                                :documentation "Differential of activation function.")
-   (error-function :initform nil
+                                :documentation "Differential of activation function.")))
+
+@export
+@export-accessors
+(defclass output-function-set (function-set)
+  ((error-function :initform nil
                    :type (or null function)
                    :initarg :error-function
                    :accessor function-set-error-function)
    (delta-function :initform nil
                    :type (or null function)
                    :initarg :delta-function
-                   :accessor function-set-delta-function)
-   (multiple-values :initform nil
-                    :type boolean
-                    :initarg :multiple-values
-                    :accessor function-set-multiple-values)))
+                   :accessor function-set-delta-function)))
 
 (defmethod print-object ((function-set function-set) stream)
   (print-unreadable-object (function-set stream :type t :identity t)
@@ -57,8 +65,10 @@
     (:d . :delta-functio)))
 
 @export
-(defmacro def-function-set (name (&key multiple-values) &body definitions)
-  `(push (make-instance 'function-set
+(defmacro def-function-set (name (type &key multiple-values) &body definitions)
+  `(push (make-instance ',(ecase type
+                            (:hidden 'hidden-function-set)
+                            (:output 'output-function-set))
                         :name ',name
                         ,@(loop for definition in definitions
                                 nconc
