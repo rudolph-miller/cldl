@@ -28,7 +28,7 @@
                       collecting (* (if (= i expected) 1 0)
                                     (log value)))))))
 
-  (:diff-of-error
+  (:delta
    (lambda (output-values expected)
      (loop for value in output-values
            for i from 0

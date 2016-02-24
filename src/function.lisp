@@ -25,13 +25,12 @@
                                 :documentation "Differential of activation function.")
    (error-function :initform nil
                    :type (or null function)
-                   :initarg :error
+                   :initarg :error-function
                    :accessor function-set-error-function)
-   (diff-of-error-function :initform nil
-                           :type (or null function)
-                           :initarg :diff-of-error-function
-                           :accessor function-set-diff-of-error-function
-                           :documentation "Differential of error function.")
+   (delta-function :initform nil
+                   :type (or null function)
+                   :initarg :delta-function
+                   :accessor function-set-delta-function)
    (multiple-values :initform nil
                     :type boolean
                     :initarg :multiple-values
@@ -52,10 +51,10 @@
     (:a . :activation-function)
     (:diff-of-activation . :diff-of-activation-function)
     (:diff-of-a . :diff-of-activation-function)
-    (:error . :error)
+    (:error . :error-function)
     (:e . :error)
-    (:diff-of-error . :diff-of-error-function)
-    (:diff-of-e . :diff-of-error-function)))
+    (:delta . :delta-function)
+    (:d . :delta-functio)))
 
 @export
 (defmacro def-function-set (name (&key multiple-values) &body definitions)

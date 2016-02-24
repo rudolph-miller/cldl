@@ -15,7 +15,7 @@
                 #:function-set-name
                 #:function-set-activation-function
                 #:function-set-diff-of-activation-function
-                #:function-set-diff-of-error-function
+                #:function-set-delta-function
                 #:function-set-multiple-values
                 #:find-function-set))
 (in-package :cldl.layer)
@@ -114,7 +114,7 @@
 (defgeneric back-propagate-output-layer (output-layer expected)
   (:method ((output-layer output-layer) expected)
     (let* ((function-set (layer-function-set output-layer))
-           (function (function-set-diff-of-error-function function-set))
+           (function (function-set-delta-function function-set))
            (units (layer-units output-layer))
            (input-values (mapcar #'unit-input-value units)))
       (if (function-set-multiple-values function-set)
