@@ -75,7 +75,7 @@
             (partial-correct-count 0))
         (loop repeat training-count
               do (train dnn train-data-set)
-              until (and (< (test dnn test-data-set) 0.01)
+              until (and (< (test dnn train-data-set) 0.01)
                          (princ "Break! ")))
         (dolist (data test-data-set)
           (incf test-count)
@@ -87,7 +87,7 @@
         (format t "~,2f%~%" (* 100 (/ partial-correct-count
                                       (length test-data-set))))))
     (let ((rate (/ correc-count test-count)))
-      (format t "Accuracy: ~,2f%" (* 100 rate))
+      (format t "Accuracy: ~,2f%~%" (* 100 rate))
       rate)))
 
 (finalize)
