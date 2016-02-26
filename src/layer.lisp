@@ -5,11 +5,8 @@
         #:annot.class)
   (:import-from #:cldl.unit
                 #:unit
-                #:unit-input-value
-                #:input-unit
-                #:hidden-unit
                 #:bias-unit
-                #:output-unit)
+                #:unit-input-value)
   (:import-from #:cldl.function
                 #:hidden-function-set
                 #:output-function-set
@@ -36,10 +33,6 @@
           :type list
           :initarg :units
           :accessor layer-units)
-   (unit-type :initform nil
-              :type (or symbol class)
-              :initarg :unit-type
-              :accessor layer-unit-type)
    (function-set :initform nil
                  :type null
                  :initarg :function-set
@@ -47,29 +40,25 @@
 
 (defmethod print-object ((layer layer) stream)
   (print-unreadable-object (layer stream :type t :identity t)
-    (with-slots (bias-unit units unit-type function-set) layer
+    (with-slots (bias-unit units function-set) layer
       (format stream
-              ":BIAS-UNIT ~a :UNITS ~a :UNIT-TYPE ~a :FUNCTION-SET ~a"
+              ":BIAS-UNIT ~a :UNITS ~a :FUNCTION-SET ~a"
               (if bias-unit 1 0)
               (length units)
-              unit-type
               (when function-set (function-set-name function-set))))))
 
 @export
 (defclass input-layer (layer)
-  ((bias-unit :initform (make-instance 'bias-unit))
-   (unit-type :initform 'input-unit)))
+  ((bias-unit :initform (make-instance 'bias-unit))))
 
 @export
 (defclass hidden-layer (layer)
   ((bias-unit :initform (make-instance 'bias-unit))
-   (unit-type :initform 'hidden-unit)
    (function-set :type hidden-function-set)))
 
 @export
 (defclass output-layer (layer)
-  ((unit-type :initform 'output-unit)
-   (function-set :type output-function-set)))
+  ((function-set :type output-function-set)))
 
 @export
 (defun make-layer (type num-of-units function-set)
@@ -78,7 +67,7 @@
                                                 (symbol (find-function-set function-set))
                                                 (function function-set))))
          (units (loop repeat num-of-units
-                      collecting (make-instance (layer-unit-type object)))))
+                      collecting (make-instance 'unit))))
     (setf (layer-units object) units)
     object))
 

@@ -8,16 +8,11 @@
                 #:mean-and-standard-deviation
                 #:normalize)
   (:import-from #:cldl.unit
-                #:hidden-unit
-                #:output-unit
                 #:unit-input-value
                 #:unit-output-value
                 #:unit-left-connections
                 #:unit-right-connections
-                #:unit-delta
-                #:input-units
-                #:hidden-unit-set
-                #:output-units)
+                #:unit-delta)
   (:import-from #:cldl.function
                 #:function-set-error-function)
   (:import-from #:cldl.layer

@@ -41,46 +41,5 @@
               input-value output-value delta))))
 
 @export
-(defclass input-unit (unit) ())
-
-@export
-(defclass hidden-unit (unit) ())
-
-@export
 (defclass bias-unit (unit)
   ((output-value :initform 1)))
-
-@export
-(defclass output-unit (unit) ())
-
-@export
-(defun generate-units (num-of-units)
-  (when (<= (length num-of-units) 2)
-    (error "At least 1 hidden units required."))
-  (let (input-units hidden-unit-set output-units)
-    (push (make-instance 'bias-unit) input-units)
-    (dotimes (_ (car num-of-units))
-      (push (make-instance 'input-unit) input-units))
-    (loop for i in (butlast (cdr num-of-units))
-          do (let (hidden-units)
-               (push (make-instance 'bias-unit) hidden-units)
-               (loop repeat i
-                     do (push (make-instance 'hidden-unit) hidden-units))
-               (push (nreverse hidden-units) hidden-unit-set)))
-    (loop repeat (car (last num-of-units))
-          do (push (make-instance 'output-unit) output-units))
-    (append (list (nreverse input-units))
-            (nreverse hidden-unit-set)
-            (list (nreverse output-units)))))
-
-@export
-(defun input-units (units)
-  (cdr (car units)))
-
-@export
-(defun hidden-unit-set (units)
-  (mapcar #'cdr (butlast (cdr units))))
-
-@export
-(defun output-units (units)
-  (car (last units)))
