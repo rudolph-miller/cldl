@@ -74,3 +74,9 @@
         (append subclasses
                 (mapcan #'class-direct-subclasses subclasses))
         nil)))
+
+@export
+(defun mapcar* (function list)
+  (loop for item in list
+        for i from 0
+        collecting (funcall function item i)))

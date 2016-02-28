@@ -1,6 +1,8 @@
 (in-package :cl-user)
 (defpackage cldl.functions
   (:use #:cl)
+  (:import-from #:cldl.util
+                #:mapcar*)
   (:import-from #:cldl.function
                 #:def-function-set))
 (in-package :cldl.functions)
@@ -23,16 +25,16 @@
    (lambda (output-values expected)
      (* -1
         (reduce #'+
-                (loop for value in output-values
-                      for i from 0
-                      collecting (* (if (= i expected) 1 0)
-                                    (log value)))))))
+                (mapcar* #'(lambda (value index)
+                             (* (if (= index expected) 1 0)
+                                (log value)))
+                         output-values)))))
 
   (:delta
    (lambda (output-values expected)
-     (loop for value in output-values
-           for i from 0
-           collecting (- value (if (= i expected) 1 0))))))
+     (mapcar* #'(lambda (value index)
+                  (- value (if (= index expected) 1 0)))
+              output-values))))
 
 @export 'rectified-linear-unit
 (def-function-set rectified-linear-unit (:hidden)
