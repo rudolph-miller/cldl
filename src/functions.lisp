@@ -16,9 +16,7 @@
      (let* ((list (mapcar #'exp output-values))
             (sum (reduce #'+ list)))
        (mapcar #'(lambda (value)
-                   (apply #'/ (mapcar #'(lambda (x)
-                                          (coerce x 'double-float))
-                                      (list value sum))))
+                   (/ value sum))
                list))))
 
   (:error
