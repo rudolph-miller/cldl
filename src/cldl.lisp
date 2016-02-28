@@ -10,6 +10,7 @@
                 #:hidden-layer
                 #:output-layer
                 #:make-layers
+                #:layer-should-connect-units
                 #:connect-layers)
   (:import-from #:cldl.data
                 #:make-data-set
@@ -30,6 +31,7 @@
            #:hidden-layer
            #:output-layer
            #:make-layers
+           #:layer-should-connect-units
            #:connect-layers
 
            #:make-data-set ;; data

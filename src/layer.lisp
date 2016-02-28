@@ -8,9 +8,13 @@
   (:import-from #:cldl.unit
                 #:unit
                 #:bias-unit
-                #:unit-input-value)
+                #:unit-input-value
+                #:unit-right-connections
+                #:unit-delta)
   (:import-from #:cldl.connection
-                #:connect-units)
+                #:connect-units
+                #:connection-right-unit
+                #:connection-weight)
   (:import-from #:cldl.function
                 #:hidden-function-set
                 #:output-function-set
@@ -102,9 +106,18 @@
            (function (function-set-diff-of-activation-function function-set))
            (units (layer-units hidden-layer))
            (input-values (mapcar #'unit-input-value units)))
-      (if (function-set-multiple-values function-set)
-          (funcall function input-values)
-          (mapcar function input-values)))))
+      (mapcar #'(lambda (unit value)
+                  (reduce #'+
+                          (mapcar #'(lambda (connection)
+                                      (* (unit-delta
+                                          (connection-right-unit connection))
+                                         (connection-weight connection)
+                                         value))
+                                  (unit-right-connections unit))))
+              (layer-units hidden-layer)
+              (if (function-set-multiple-values function-set)
+                  (funcall function input-values)
+                  (mapcar function input-values))))))
 
 @export
 (defgeneric back-propagate-output-layer (output-layer expected)
@@ -120,12 +133,23 @@
                   input-values)))))
 
 @export
+(defgeneric layer-should-connect-units (layer)
+  (:method ((layer input-layer))
+    (cons (layer-bias-unit layer)
+          (layer-units layer)))
+  (:method ((layer hidden-layer))
+    (cons (layer-bias-unit layer)
+          (layer-units layer)))
+  (:method ((layer output-layer))
+    (layer-units layer)))
+
+@export
 (defun connect-layers (layers)
   (mapcar #'(lambda (left-layer right-layer)
-              (connect-units (append (when-let ((left-bias-unit
-                                                 (layer-bias-unit left-layer)))
-                                       (list left-bias-unit))
-                                     (layer-units left-layer))
-                             (layer-units right-layer)))
+              (connect-units
+               (layer-should-connect-units left-layer)
+               (remove-if #'(lambda (unit)
+                              (typep unit 'bias-unit))
+                          (layer-should-connect-units right-layer))))
           layers
           (cdr layers)))
