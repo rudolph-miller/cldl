@@ -13,7 +13,7 @@
                 #:hidden-layer
                 #:output-layer
                 #:make-layers
-                #:connect
+                #:connect-layers
                 #:make-data-set
                 #:data-input
                 #:data-expected
@@ -62,7 +62,7 @@
   (let* ((layers (make-layers (list (list 'input-layer 4)
                                     (list 'hidden-layer 10 'rectified-linear-unit)
                                     (list 'output-layer 3 'softmax))))
-         (connections (connect layers))
+         (connections (connect-layers layers))
          (data-sets (separete-data-set (data-set)))
          (dnn (make-instance 'dnn
                              :layers layers

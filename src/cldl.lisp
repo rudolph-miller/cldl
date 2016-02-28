@@ -9,9 +9,8 @@
                 #:input-layer
                 #:hidden-layer
                 #:output-layer
-                #:make-layers)
-  (:import-from #:cldl.connection
-                #:connect)
+                #:make-layers
+                #:connect-layers)
   (:import-from #:cldl.data
                 #:make-data-set
                 #:data-input
@@ -31,8 +30,7 @@
            #:hidden-layer
            #:output-layer
            #:make-layers
-
-           #:connect ;; connection
+           #:connect-layers
 
            #:make-data-set ;; data
            #:data-input

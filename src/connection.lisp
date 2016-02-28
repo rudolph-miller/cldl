@@ -3,18 +3,13 @@
   (:use #:cl
         #:annot.doc
         #:annot.class)
-  (:import-from #:alexandria
-                #:when-let)
   (:import-from #:cldl.util
                 #:normal-random)
   (:import-from #:cldl.unit
                 #:unit
                 #:bias-unit
                 #:unit-left-connections
-                #:unit-right-connections)
-  (:import-from #:cldl.layer
-                #:layer-bias-unit
-                #:layer-units))
+                #:unit-right-connections))
 (in-package :cldl.connection)
 
 (syntax:use-syntax :annot)
@@ -55,7 +50,7 @@
 @export
 @doc
 "Connect given units and return connection-set"
-(defun connect (layers)
+(defun connect-units (left-units right-units)
   (flet ((%connect (left-unit right-unit)
            (let* ((weight (if (typep left-unit 'bias-unit)
                               +DEFAULT-WEIGHT+
@@ -67,13 +62,8 @@
              (push connection (unit-left-connections right-unit))
              (push connection (unit-right-connections left-unit))
              connection)))
-    (mapcar #'(lambda (left-layer right-layer)
-                (mapcar #'(lambda (left-unit)
-                            (mapcar #'(lambda (right-unit)
-                                        (%connect left-unit right-unit))
-                                    (layer-units right-layer)))
-                        (append (when-let ((left-bias-unit (layer-bias-unit left-layer)))
-                                  (list left-bias-unit))
-                                (layer-units left-layer))))
-            layers
-            (cdr layers))))
+    (mapcar #'(lambda (left-unit)
+                (mapcar #'(lambda (right-unit)
+                            (%connect left-unit right-unit))
+                        right-units))
+            left-units)))

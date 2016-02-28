@@ -3,10 +3,14 @@
   (:use #:cl
         #:annot.doc
         #:annot.class)
+  (:import-from #:alexandria
+                #:when-let)
   (:import-from #:cldl.unit
                 #:unit
                 #:bias-unit
                 #:unit-input-value)
+  (:import-from #:cldl.connection
+                #:connect-units)
   (:import-from #:cldl.function
                 #:hidden-function-set
                 #:output-function-set
@@ -114,3 +118,14 @@
           (mapcar #'(lambda (value)
                       (funcall function value expected))
                   input-values)))))
+
+@export
+(defun connect-layers (layers)
+  (mapcar #'(lambda (left-layer right-layer)
+              (connect-units (append (when-let ((left-bias-unit
+                                                 (layer-bias-unit left-layer)))
+                                       (list left-bias-unit))
+                                     (layer-units left-layer))
+                             (layer-units right-layer)))
+          layers
+          (cdr layers)))
