@@ -3,6 +3,8 @@
 
 It's just my hobby!! :)
 
+[Deep Learning in Common Lisp](https://blog.rudolph-miller.com/2016/02/26/deep-learning-in-common-lisp/)
+
 # Author
 
 * Rudolph Miller (chopsticks.tk.ppfm@gmail.com)
