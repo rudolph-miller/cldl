@@ -58,12 +58,13 @@
         until (< (length list) size)
         do (setq data-set (subseq data-set size))))
 
-(defun main (&optional (training-count 0))
+(defun main (&optional (training-count 0) (silent nil))
   (let* ((layers (make-layers (list (list 'input-layer 4)
                                     (list 'hidden-layer 10 'rectified-linear-unit)
                                     (list 'output-layer 3 'softmax))))
          (connections (connect-layers layers))
          (data-sets (separete-data-set (data-set)))
+         (start (get-internal-real-time))
          (dnn (make-instance 'dnn
                              :layers layers
                              :connections connections
@@ -76,7 +77,9 @@
         (loop repeat training-count
               do (train dnn train-data-set)
               until (and (< (test dnn train-data-set) 0.01)
-                         (princ "Break! ")))
+                         (if silent
+                             t
+                             (princ "Break! "))))
         (dolist (data test-data-set)
           (incf test-count)
           (let ((result (predict dnn (data-input data))))
@@ -84,10 +87,12 @@
                      (data-expected data))
               (incf correc-count)
               (incf partial-correct-count))))
-        (format t "~,2f%~%" (* 100 (/ partial-correct-count
-                                      (length test-data-set))))))
+        (unless silent
+          (format t "~,2f%~%" (* 100 (/ partial-correct-count
+                                        (length test-data-set)))))))
     (let ((rate (/ correc-count test-count)))
       (format t "Accuracy: ~,2f%~%" (* 100 rate))
+      (format t "Time: ~amsec~%" (- (get-internal-real-time) start))
       rate)))
 
 (finalize)
