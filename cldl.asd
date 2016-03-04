@@ -20,6 +20,7 @@
   :components ((:module "src"
                 :components
                 ((:file "util")
+                 (:file "autodiff")
                  (:file "unit")
                  (:file "function")
                  (:file "connection")
