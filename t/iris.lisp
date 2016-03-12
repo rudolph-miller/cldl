@@ -7,7 +7,6 @@
   (:import-from #:split-sequence
                 #:split-sequence)
   (:import-from #:cldl
-                #:find-d-function
                 #:softmax
                 #:multi-class-cross-entropy
                 #:rectified-linear-unit
@@ -63,10 +62,10 @@
 (defun main (&optional (training-count 0) (silent nil))
   (let* ((layers (make-layers (list (list 'input-layer 4)
                                     (list 'hidden-layer 10
-                                          :activation-function (find-d-function 'rectified-linear-unit))
+                                          :activation-function 'rectified-linear-unit)
                                     (list 'output-layer 3
-                                          :activation-function (find-d-function 'softmax)
-                                          :error-function (find-d-function 'multi-class-cross-entropy)))))
+                                          :activation-function 'softmax
+                                          :error-function 'multi-class-cross-entropy))))
          (connections (connect-layers layers))
          (data-sets (separete-data-set (data-set)))
          (start (get-internal-real-time))

@@ -19,7 +19,8 @@
   (:import-from #:cldl.differentiable-function
                 #:d-function
                 #:d-function-take-value-set
-                #:diff-funcall))
+                #:diff-funcall
+                #:find-d-function))
 (in-package :cldl.layer)
 
 (syntax:use-syntax :annot)
@@ -50,6 +51,11 @@
 (defclass input-layer (layer)
   ((bias-unit :initform (make-instance 'bias-unit))))
 
+(defun replace-d-functions (args indicator)
+  (when-let ((name (getf args indicator)))
+    (setf (getf args indicator)
+          (find-d-function name))))
+
 @export
 (defclass hidden-layer (layer)
   ((bias-unit :initform (make-instance 'bias-unit))
@@ -57,6 +63,10 @@
                         :type (or null d-function)
                         :initarg :activation-function
                         :accessor layer-activation-function)))
+
+(defmethod initialize-instance :around ((class hidden-layer) &rest initargs)
+  (replace-d-functions initargs :activation-function)
+  (call-next-method))
 
 @export
 (defclass output-layer (layer)
@@ -68,6 +78,12 @@
                    :type (or null d-function)
                    :initarg :error-function
                    :accessor layer-error-function)))
+
+
+(defmethod initialize-instance :around ((class output-layer) &rest initargs)
+  (replace-d-functions initargs :activation-function)
+  (replace-d-functions initargs :error-function)
+  (call-next-method))
 
 @export
 (defun make-layer (type num-of-units &rest args)
