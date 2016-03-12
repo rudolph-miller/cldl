@@ -12,8 +12,6 @@
                 #:unit-output-value
                 #:unit-left-connections
                 #:unit-delta)
-  (:import-from #:cldl.function
-                #:function-set-error-function)
   (:import-from #:cldl.layer
                 #:layer
                 #:input-layer
