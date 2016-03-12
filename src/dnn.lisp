@@ -20,7 +20,8 @@
                 #:hidden-layer
                 #:output-layer
                 #:layer-units
-                #:layer-function-set
+                #:layer-activation-function
+                #:layer-error-function
                 #:activate
                 #:back-propagate-hidden-layer
                 #:back-propagate-output-layer)
@@ -126,11 +127,10 @@
   (let* ((picked-data-set (pick-data-set dnn data-set))
          (layers (dnn-layers dnn))
          (output-layer (car (last layers)))
-         (function-set (layer-function-set output-layer))
-         (error-function (function-set-error-function function-set)))
+         (function (layer-error-function output-layer)))
     (/ (reduce #'+
                (mapcar #'(lambda (data)
-                           (funcall error-function
+                           (funcall function
                                     (predict dnn (data-input data))
                                     (data-expected data)))
                        picked-data-set))

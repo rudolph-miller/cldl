@@ -22,7 +22,7 @@
                 ((:file "util")
                  (:file "auto-diff")
                  (:file "unit")
-                 (:file "function")
+                 (:file "differentiable-function")
                  (:file "connection")
                  (:file "layer")
                  (:file "data")

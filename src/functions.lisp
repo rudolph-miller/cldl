@@ -3,43 +3,35 @@
   (:use #:cl)
   (:import-from #:cldl.util
                 #:mapcar*)
-  (:import-from #:cldl.function
-                #:def-function-set))
+  (:import-from #:cldl.differentiable-function
+                #:def-d-function))
 (in-package :cldl.functions)
 
 (syntax:use-syntax :annot)
 
 @export 'softmax
-(def-function-set softmax (:output :multiple-values t)
-  (:activation
-   (lambda (output-values)
-     (let* ((list (mapcar #'exp output-values))
-            (sum (reduce #'+ list)))
-       (mapcar #'(lambda (value)
-                   (/ value sum))
-               list))))
+(def-d-function (softmax :take-value-set t) (values)
+  (:fn (let* ((list (mapcar #'exp values))
+              (sum (reduce #'+ list)))
+         (mapcar #'(lambda (value)
+                     (/ value sum))
+                 list))))
 
-  (:error
-   (lambda (output-values expected)
-     (* -1
-        (reduce #'+
-                (mapcar* #'(lambda (value index)
-                             (* (if (= index expected) 1 0)
-                                (log value)))
-                         output-values)))))
+@export 'multi-class-cross-entropy
+(def-d-function (multi-class-cross-entropy :take-value-set t) (values expected)
+  (:fn (* -1
+          (reduce #'+
+                  (mapcar* #'(lambda (value index)
+                               (* (if (= index expected) 1 0)
+                                  (log value)))
+                           values))))
 
-  (:delta
-   (lambda (output-values expected)
-     (mapcar* #'(lambda (value index)
-                  (- value (if (= index expected) 1 0)))
-              output-values))))
+  (:diff (mapcar* #'(lambda (value index)
+                      (- value (if (= index expected) 1 0)))
+                  values)))
 
 @export 'rectified-linear-unit
-(def-function-set rectified-linear-unit (:hidden)
-  (:activation
-   (lambda (value)
-     (if (< value 0) 0 value)))
+(def-d-function rectified-linear-unit (value)
+  (:fn (if (< value 0) 0 value))
 
-  (:diff-of-activation
-   (lambda (value)
-     (if (< value 0) 0 1))))
+  (:diff (if (< value 0) 0 1)))

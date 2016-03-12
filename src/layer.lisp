@@ -16,15 +16,10 @@
                 #:connect-units
                 #:connection-right-unit
                 #:connection-weight)
-  (:import-from #:cldl.function
-                #:hidden-function-set
-                #:output-function-set
-                #:function-set-name
-                #:function-set-activation-function
-                #:function-set-diff-of-activation-function
-                #:function-set-delta-function
-                #:function-set-multiple-values
-                #:find-function-set))
+  (:import-from #:cldl.differentiable-function
+                #:d-function
+                #:d-function-take-value-set
+                #:diff-funcall))
 (in-package :cldl.layer)
 
 (syntax:use-syntax :annot)
@@ -41,20 +36,15 @@
    (units :initform nil
           :type list
           :initarg :units
-          :accessor layer-units)
-   (function-set :initform nil
-                 :type null
-                 :initarg :function-set
-                 :accessor layer-function-set)))
+          :accessor layer-units)))
 
 (defmethod print-object ((layer layer) stream)
   (print-unreadable-object (layer stream :type t :identity t)
-    (with-slots (bias-unit units function-set) layer
+    (with-slots (bias-unit units) layer
       (format stream
-              ":BIAS-UNIT ~a :UNITS ~a :FUNCTION-SET ~a"
+              ":BIAS-UNIT ~a :UNITS ~a"
               (if bias-unit 1 0)
-              (length units)
-              (when function-set (function-set-name function-set))))))
+              (length units)))))
 
 @export
 (defclass input-layer (layer)
@@ -63,18 +53,27 @@
 @export
 (defclass hidden-layer (layer)
   ((bias-unit :initform (make-instance 'bias-unit))
-   (function-set :type hidden-function-set)))
+   (activation-function :initform nil
+                        :type (or null d-function)
+                        :initarg :activation-function
+                        :accessor layer-activation-function)))
 
 @export
 (defclass output-layer (layer)
-  ((function-set :type output-function-set)))
+  ((activation-function :initform nil
+                        :type (or null d-function)
+                        :initarg :activation-function
+                        :accessor layer-activation-function)
+   (error-function :initform nil
+                   :type (or null d-function)
+                   :initarg :error-function
+                   :accessor layer-error-function)))
 
 @export
-(defun make-layer (type num-of-units function-set)
-  (let* ((object (make-instance type
-                                :function-set (etypecase function-set
-                                                (symbol (find-function-set function-set))
-                                                (function function-set))))
+(defun make-layer (type num-of-units &rest args)
+  (let* ((object (apply #'make-instance
+                        type
+                        args))
          (units (loop repeat num-of-units
                       collecting (make-instance 'unit))))
     (setf (layer-units object) units)
@@ -82,8 +81,8 @@
 
 @export
 (defun make-layers (list)
-  (loop for (type num-of-units function-set) in list
-        collecting (make-layer type num-of-units function-set)))
+  (loop for (type num-of-units . args) in list
+        collecting (apply #'make-layer type num-of-units args)))
 
 @export
 (defun output-layer (layers)
@@ -114,19 +113,17 @@
 @export
 (defgeneric activate (layer)
   (:method ((layer layer))
-    (let* ((function-set (layer-function-set layer))
-           (function (function-set-activation-function function-set))
+    (let* ((function (layer-activation-function layer))
            (units (layer-units layer))
            (input-values (mapcar #'unit-input-value units)))
-      (if (function-set-multiple-values function-set)
+      (if (d-function-take-value-set function)
           (funcall function input-values)
           (mapcar function input-values)))))
 
 @export
 (defgeneric back-propagate-hidden-layer (hidden-layer)
   (:method ((hidden-layer hidden-layer))
-    (let* ((function-set (layer-function-set hidden-layer))
-           (function (function-set-diff-of-activation-function function-set))
+    (let* ((function (layer-activation-function hidden-layer))
            (units (layer-units hidden-layer))
            (input-values (mapcar #'unit-input-value units)))
       (mapcar #'(lambda (unit value)
@@ -138,19 +135,20 @@
                                          value))
                                   (unit-right-connections unit))))
               (layer-units hidden-layer)
-              (if (function-set-multiple-values function-set)
-                  (funcall function input-values)
-                  (mapcar function input-values))))))
+              (if (d-function-take-value-set function)
+                  (diff-funcall function input-values)
+                  (mapcar #'(lambda (value)
+                              (diff-funcall function value))
+                          input-values))))))
 
 @export
 (defgeneric back-propagate-output-layer (output-layer expected)
   (:method ((output-layer output-layer) expected)
-    (let* ((function-set (layer-function-set output-layer))
-           (function (function-set-delta-function function-set))
+    (let* ((function (layer-error-function output-layer))
            (units (layer-units output-layer))
            (output-values (mapcar #'unit-output-value units)))
-      (if (function-set-multiple-values function-set)
-          (funcall function output-values expected)
+      (if (d-function-take-value-set function)
+          (diff-funcall function output-values expected)
           (mapcar #'(lambda (value)
-                      (funcall function value expected))
+                      (diff-funcall function value expected))
                   output-values)))))

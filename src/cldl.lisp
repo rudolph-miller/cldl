@@ -2,8 +2,11 @@
 (defpackage cldl
   (:use #:cl
         #:annot.doc)
+  (:import-from #:cldl.differentiable-function
+                #:find-d-function)
   (:import-from #:cldl.functions
                 #:softmax
+                #:multi-class-cross-entropy
                 #:rectified-linear-unit)
   (:import-from #:cldl.layer
                 #:input-layer
@@ -21,10 +24,11 @@
                 #:predict
                 #:test
                 #:train)
-  (:export #:def-function-set ;; function
-           #:find-function-set
+  (:export #:find-d-function ;; differentiable-function
+           #:def-d-function
 
            #:softmax ;; functions
+           #:multi-class-cross-entropy
            #:rectified-linear-unit
 
            #:input-layer ;; layer
