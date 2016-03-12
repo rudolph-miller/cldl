@@ -23,7 +23,8 @@
                 #:dnn
                 #:predict
                 #:test
-                #:train)
+                #:train
+                #:run)
   (:export #:find-d-function ;; differentiable-function
            #:def-d-function
 
@@ -45,5 +46,6 @@
            #:dnn ;; dnn
            #:predict
            #:test
-           #:train))
+           #:train
+           #:run))
 (in-package :cldl)

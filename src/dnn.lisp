@@ -6,7 +6,8 @@
   (:import-from #:cldl.util
                 #:pick-randomly
                 #:mean-and-standard-deviation
-                #:normalize)
+                #:normalize
+                #:partition)
   (:import-from #:cldl.unit
                 #:unit-input-value
                 #:unit-output-value
@@ -20,6 +21,7 @@
                 #:layer-units
                 #:layer-activation-function
                 #:layer-error-function
+                #:connect-layers
                 #:activate
                 #:back-propagate-hidden-layer
                 #:back-propagate-output-layer)
@@ -72,6 +74,12 @@
               ":LEARING-COEFFICIENT ~a :MINI-BATCH-SIZE ~a"
               learning-coefficient
               mini-batch-size))))
+
+(defmethod initialize-instance :after ((dnn dnn) &rest initargs)
+  (declare (ignore initargs))
+  (when (dnn-layers dnn)
+    (setf (dnn-connections dnn)
+          (connect-layers (dnn-layers dnn)))))
 
 (defun calculate-unit-input-value (unit)
   (reduce #'+
@@ -181,3 +189,36 @@
                       (* (dnn-learning-coefficient dnn)
                          (connection-weight-diff connection)))
                 (setf (connection-weight-diff connection) 0)))))))))
+
+@export
+(defun run (dnn data-set  &key
+                            (training-count 0)
+                            (silent nil)
+                            (fold-num 10)
+                            (error-threshold 0.01))
+  "Run K-fold cross validation"
+  (let* ((correc-count 0)
+         (test-count 0)
+         (data-sets (partition data-set fold-num)))
+    (dolist (test-data-set data-sets)
+      (let ((train-data-set (apply #'append (remove test-data-set data-sets)))
+            (partial-correct-count 0))
+        (loop repeat training-count
+              do (train dnn train-data-set)
+              until (and (< (test dnn train-data-set) error-threshold)
+                         (if silent
+                             t
+                             (princ "Break! "))))
+        (dolist (data test-data-set)
+          (incf test-count)
+          (let ((result (predict dnn (data-input data))))
+            (when (= (position (apply #'max result) result)
+                     (data-expected data))
+              (incf correc-count)
+              (incf partial-correct-count))))
+        (unless silent
+          (format t "~,2f%~%" (* 100 (/ partial-correct-count
+                                        (length test-data-set)))))))
+    (let ((rate (/ correc-count test-count)))
+      (format t "Accuracy: ~,2f%~%" (* 100 rate))
+      rate)))

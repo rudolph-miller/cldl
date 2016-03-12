@@ -80,3 +80,12 @@
   (loop for item in list
         for i from 0
         collecting (funcall function item i)))
+
+@export
+(defun partition (list k)
+  (loop with size  = (floor (/ (length list) k))
+        while (> (length list) 0)
+        for part = (subseq list 0 size)
+        collecting part
+        until (< (length part) size)
+        do (setq list (subseq list size))))
