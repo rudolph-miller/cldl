@@ -34,15 +34,26 @@
                    :accessor d-function-take-value-set))
   (:metaclass funcallable-standard-class))
 
+(defun funcall-or-mapcar (d-function type value &optional (expected nil expected-given))
+  (let ((fn (ecase type
+              (:fn (d-function-fn d-function))
+              (:diff (d-function-diff d-function)))))
+    (if (d-function-take-value-set d-function)
+        (if expected-given
+            (funcall fn value expected)
+            (funcall fn value))
+        (if expected-given
+            (mapcar fn value expected)
+            (mapcar fn value)))))
+
 (defmethod initialize-instance :after ((d-function d-function) &key)
   (push d-function *d-functions*)
-  (with-slots (fn) d-function
-    (set-funcallable-instance-function
-     d-function
-     #'(lambda (value &optional (expected nil expected-given))
-         (if expected-given
-             (funcall fn value expected)
-             (funcall fn value))))))
+  (set-funcallable-instance-function
+   d-function
+   #'(lambda (value &optional (expected nil expected-given))
+       (if expected-given
+           (funcall-or-mapcar d-function :fn value expected)
+           (funcall-or-mapcar d-function :fn value)))))
 
 (defmethod print-object ((d-function d-function) stream)
   (print-unreadable-object (d-function stream :type t :identity t)

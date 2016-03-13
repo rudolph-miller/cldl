@@ -132,9 +132,7 @@
     (let* ((function (layer-activation-function layer))
            (units (layer-units layer))
            (input-values (mapcar #'unit-input-value units)))
-      (if (d-function-take-value-set function)
-          (funcall function input-values)
-          (mapcar function input-values)))))
+      (funcall function input-values))))
 
 @export
 (defgeneric back-propagate-hidden-layer (hidden-layer)
