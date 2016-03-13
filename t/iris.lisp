@@ -41,8 +41,14 @@
 (defun data-set ()
   (make-data-set
    (mapcar #'(lambda (data)
-               (list :expected (car data)
-                     :input (cdr data)))
+               (let ((expected (loop for i from 0 to 2
+                                     with expected-index = (car data)
+                                     if (= i expected-index)
+                                       collecting 1
+                                     else
+                                       collecting 0)))
+                 (list :expected expected
+                       :input (cdr data))))
            (data))))
 
 (defun main (&optional (training-count 0) (silent nil))
@@ -55,11 +61,17 @@
          (dnn (make-instance 'dnn
                              :layers layers
                              :learning-coefficient 0.001))
+         (correct-fn (lambda (output-values expected-values)
+                       (= (position (apply #'max output-values) output-values)
+                          (position 1 expected-values))))
          (start (get-internal-real-time)))
-    (cldl:run dnn (data-set) :training-count training-count
-                             :silent silent
-                             :fold-num 10
-                             :error-threshold 0.01)
+    (cldl:run dnn
+              (data-set)
+              correct-fn
+              :training-count training-count
+              :silent silent
+              :fold-num 10
+              :error-threshold 0.01)
     (format t "Time: ~amsec~%" (- (get-internal-real-time) start))))
 
 (finalize)

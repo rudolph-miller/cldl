@@ -191,11 +191,11 @@
                 (setf (connection-weight-diff connection) 0)))))))))
 
 @export
-(defun run (dnn data-set  &key
-                            (training-count 0)
-                            (silent nil)
-                            (fold-num 10)
-                            (error-threshold 0.01))
+(defun run (dnn data-set correct-fn &key
+                                      (training-count 0)
+                                      (silent nil)
+                                      (fold-num 10)
+                                      (error-threshold 0.01))
   "Run K-fold cross validation"
   (let* ((correc-count 0)
          (test-count 0)
@@ -212,8 +212,7 @@
         (dolist (data test-data-set)
           (incf test-count)
           (let ((result (predict dnn (data-input data))))
-            (when (= (position (apply #'max result) result)
-                     (data-expected data))
+            (when (funcall correct-fn result (data-expected data))
               (incf correc-count)
               (incf partial-correct-count))))
         (unless silent

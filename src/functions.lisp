@@ -18,17 +18,18 @@
                  list))))
 
 @export 'multi-class-cross-entropy
-(def-d-function (multi-class-cross-entropy :take-value-set t) (values expected)
+(def-d-function (multi-class-cross-entropy :take-value-set t) (values expected-values)
   (:fn (* -1
           (reduce #'+
-                  (mapcar* #'(lambda (value index)
-                               (* (if (= index expected) 1 0)
-                                  (log value)))
-                           values))))
+                  (mapcar #'(lambda (value expected)
+                              (* expected (log value)))
+                          values
+                          expected-values))))
 
-  (:diff (mapcar* #'(lambda (value index)
-                      (- value (if (= index expected) 1 0)))
-                  values)))
+  (:diff (mapcar #'(lambda (value expected)
+                     (- value expected))
+                 values
+                 expected-values)))
 
 @export 'rectified-linear-unit
 (def-d-function rectified-linear-unit (value)
