@@ -38,6 +38,8 @@
            #:make-layers
            #:layer-should-connect-units
            #:connect-layers
+           #:propagate
+           #:back-propagate
 
            #:make-data-set ;; data
            #:data-input

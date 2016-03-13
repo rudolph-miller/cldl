@@ -10,22 +10,17 @@
                 #:partition)
   (:import-from #:cldl.unit
                 #:unit-input-value
-                #:unit-output-value
-                #:unit-left-connections
-                #:unit-delta)
+                #:unit-output-value)
   (:import-from #:cldl.layer
                 #:layer
                 #:input-layer
                 #:hidden-layer
                 #:output-layer
                 #:layer-units
-                #:layer-activation-function
                 #:layer-error-function
                 #:connect-layers
                 #:propagate
-                #:activate
-                #:back-propagate-hidden-layer
-                #:back-propagate-output-layer)
+                #:back-propagate)
   (:import-from #:cldl.connection
                 #:connection-left-unit
                 #:connection-weight
@@ -92,18 +87,17 @@
 @export
 "Returns output values"
 (defun predict (dnn input)
-  (dolist (layer (dnn-layers dnn))
-    (when (typep layer 'input-layer)
-       (map nil
-            #'(lambda (input-unit value)
-                (setf (unit-input-value input-unit) value))
-            (layer-units layer)
-            (normalize-input input
-                             (dnn-input-means dnn)
-                             (dnn-input-standard-deviations dnn))))
-    (propagate layer))
-  (mapcar #'unit-output-value
-          (layer-units (output-layer (dnn-layers dnn)))))
+  (let ((layers (dnn-layers dnn)))
+    (map nil
+         #'(lambda (input-unit value)
+             (setf (unit-input-value input-unit) value))
+         (layer-units (input-layer layers))
+         (normalize-input input
+                          (dnn-input-means dnn)
+                          (dnn-input-standard-deviations dnn)))
+    (map nil #'propagate layers)
+    (mapcar #'unit-output-value
+            (layer-units (output-layer (dnn-layers dnn))))))
 
 (defun pick-data-set (dnn data-set)
   (pick-randomly data-set (dnn-mini-batch-size dnn)))
@@ -141,36 +135,24 @@
 @doc
 "Train dnn by given data-set"
 (defun train (dnn data-set)
-  (flet ((back-propagate (units values)
-           (map nil
-                #'(lambda (unit delta)
-                    (setf (unit-delta unit) delta)
-                    (dolist (connection (unit-left-connections unit))
-                      (incf (connection-weight-diff connection)
-                            (* delta (unit-output-value
-                                      (connection-left-unit connection))))))
-                units
-                values)))
-    (multiple-value-bind (means standard-deviations)
-        (calculate-means-and-standard-deviations data-set)
-      (setf (dnn-input-means dnn) means
-            (dnn-input-standard-deviations dnn) standard-deviations)
-      (let ((picked-data-set (pick-data-set dnn data-set)))
-        (dolist (data picked-data-set)
-          (predict dnn (data-input data))
-          (dolist (layer (reverse (cdr (dnn-layers dnn))))
-            (back-propagate
-             (layer-units layer)
-             (etypecase layer
-               (output-layer (back-propagate-output-layer layer (data-expected data)))
-               (hidden-layer (back-propagate-hidden-layer layer)))))
-          (dolist (outer-connections (dnn-connections dnn))
-            (dolist (inner-connectios outer-connections)
-              (dolist (connection inner-connectios)
-                (decf (connection-weight connection)
-                      (* (dnn-learning-coefficient dnn)
-                         (connection-weight-diff connection)))
-                (setf (connection-weight-diff connection) 0)))))))))
+  (multiple-value-bind (means standard-deviations)
+      (calculate-means-and-standard-deviations data-set)
+    (setf (dnn-input-means dnn) means
+          (dnn-input-standard-deviations dnn) standard-deviations)
+    (let ((picked-data-set (pick-data-set dnn data-set)))
+      (dolist (data picked-data-set)
+        (predict dnn (data-input data))
+        (dolist (layer (reverse (cdr (dnn-layers dnn))))
+          (etypecase layer
+            (output-layer (back-propagate layer (data-expected data)))
+            (hidden-layer (back-propagate layer))))
+        (dolist (outer-connections (dnn-connections dnn))
+          (dolist (inner-connectios outer-connections)
+            (dolist (connection inner-connectios)
+              (decf (connection-weight connection)
+                    (* (dnn-learning-coefficient dnn)
+                       (connection-weight-diff connection)))
+              (setf (connection-weight-diff connection) 0))))))))
 
 @export
 (defun run (dnn data-set correct-fn &key

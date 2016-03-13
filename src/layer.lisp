@@ -17,7 +17,9 @@
                 #:connect-units
                 #:connection-left-unit
                 #:connection-right-unit
-                #:connection-weight)
+                #:connection-weight
+                #:connection-weight-diff
+                #:connection-value)
   (:import-from #:cldl.differentiable-function
                 #:d-function
                 #:diff-funcall
@@ -102,6 +104,10 @@
         collecting (apply #'make-layer type num-of-units args)))
 
 @export
+(defun input-layer (layers)
+  (car layers))
+
+@export
 (defun output-layer (layers)
   (car (last layers)))
 
@@ -127,60 +133,65 @@
           layers
           (cdr layers)))
 
-(defun calculate-unit-input-value (unit)
-  (reduce #'+
-          (mapcar #'(lambda (connection)
-                      (* (unit-output-value
-                          (connection-left-unit connection))
-                         (connection-weight connection)))
-                  (unit-left-connections unit))))
-
 @export
 (defgeneric propagate (layer)
   (:method ((layer layer))
-    (let ((units (layer-units layer)))
-    (dolist (unit units)
-      (setf (unit-input-value unit)
-            (calculate-unit-input-value unit)))
-    (map nil
-         #'(lambda (unit value)
-             (setf (unit-output-value unit) value))
-         units
-         (activate layer)))))
+    (let* ((units (layer-units layer))
+           (function (layer-activation-function layer))
+           (input-values (mapcar #'(lambda (unit)
+                                     (reduce #'+
+                                             (mapcar #'connection-value
+                                                     (unit-left-connections unit))))
+                                 units)))
+      (map nil
+           #'(lambda (unit input-value output-value)
+               (setf (unit-input-value unit) input-value)
+               (setf (unit-output-value unit) output-value))
+           units
+           input-values
+           (funcall function input-values)))))
 
 (defmethod propagate ((layer input-layer))
   (dolist (unit (layer-units layer))
     (setf (unit-output-value unit) (unit-input-value unit))))
 
 @export
-(defgeneric activate (layer)
-  (:method ((layer layer))
-    (let* ((function (layer-activation-function layer))
-           (units (layer-units layer))
-           (input-values (mapcar #'unit-input-value units)))
-      (funcall function input-values))))
+(defgeneric back-propagate (layer &optional expected))
 
-@export
-(defgeneric back-propagate-hidden-layer (hidden-layer)
-  (:method ((hidden-layer hidden-layer))
-    (let* ((function (layer-activation-function hidden-layer))
-           (units (layer-units hidden-layer))
-           (input-values (mapcar #'unit-input-value units)))
-      (mapcar #'(lambda (unit value)
-                  (reduce #'+
-                          (mapcar #'(lambda (connection)
-                                      (* (unit-delta
-                                          (connection-right-unit connection))
-                                         (connection-weight connection)
-                                         value))
-                                  (unit-right-connections unit))))
-              (layer-units hidden-layer)
-              (diff-funcall function input-values)))))
+(defun update-left-connections (unit delta)
+  (dolist (connection (unit-left-connections unit))
+    (incf (connection-weight-diff connection)
+          (* delta (unit-output-value
+                    (connection-left-unit connection))))))
 
-@export
-(defgeneric back-propagate-output-layer (output-layer expected)
-  (:method ((output-layer output-layer) expected)
-    (let* ((function (layer-error-function output-layer))
-           (units (layer-units output-layer))
-           (output-values (mapcar #'unit-output-value units)))
-      (diff-funcall function output-values expected))))
+(defmethod back-propagate ((layer hidden-layer) &optional expected)
+  (declare (ignore expected))
+  (let* ((function (layer-activation-function layer))
+         (units (layer-units layer))
+         (input-values (mapcar #'unit-input-value units)))
+    (map nil
+         #'(lambda (unit delta)
+             (setf (unit-delta unit) delta)
+             (update-left-connections unit delta))
+         units
+         (mapcar #'(lambda (unit value)
+                     (reduce #'+
+                             (mapcar #'(lambda (connection)
+                                         (* (unit-delta
+                                             (connection-right-unit connection))
+                                            (connection-weight connection)
+                                            value))
+                                     (unit-right-connections unit))))
+                 (layer-units layer)
+                 (diff-funcall function input-values)))))
+
+(defmethod back-propagate ((layer output-layer) &optional expected)
+  (let* ((function (layer-error-function layer))
+         (units (layer-units layer))
+         (output-values (mapcar #'unit-output-value units)))
+    (map nil
+         #'(lambda (unit delta)
+             (setf (unit-delta unit) delta)
+             (update-left-connections unit delta))
+         units
+         (diff-funcall function output-values expected))))

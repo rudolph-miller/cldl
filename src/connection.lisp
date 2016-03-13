@@ -9,7 +9,8 @@
                 #:unit
                 #:bias-unit
                 #:unit-left-connections
-                #:unit-right-connections))
+                #:unit-right-connections
+                #:unit-output-value))
 (in-package :cldl.connection)
 
 (syntax:use-syntax :annot)
@@ -67,3 +68,9 @@
                             (%connect left-unit right-unit))
                         right-units))
             left-units)))
+
+@export
+(defun connection-value (connection)
+  (* (unit-output-value
+      (connection-left-unit connection))
+     (connection-weight connection)))
