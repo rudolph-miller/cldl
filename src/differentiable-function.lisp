@@ -62,10 +62,9 @@
 
 @export
 (defun diff-funcall (d-function value &optional (expected nil expected-given))
-  (let ((diff (d-function-diff d-function)))
-    (if expected-given
-        (funcall diff value expected)
-        (funcall diff value))))
+  (if expected-given
+      (funcall-or-mapcar d-function :diff value expected)
+      (funcall-or-mapcar d-function :diff value)))
 
 @export
 (defun find-d-function (name)

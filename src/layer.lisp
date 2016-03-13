@@ -18,7 +18,6 @@
                 #:connection-weight)
   (:import-from #:cldl.differentiable-function
                 #:d-function
-                #:d-function-take-value-set
                 #:diff-funcall
                 #:find-d-function))
 (in-package :cldl.layer)
@@ -149,11 +148,7 @@
                                          value))
                                   (unit-right-connections unit))))
               (layer-units hidden-layer)
-              (if (d-function-take-value-set function)
-                  (diff-funcall function input-values)
-                  (mapcar #'(lambda (value)
-                              (diff-funcall function value))
-                          input-values))))))
+              (diff-funcall function input-values)))))
 
 @export
 (defgeneric back-propagate-output-layer (output-layer expected)
@@ -161,8 +156,4 @@
     (let* ((function (layer-error-function output-layer))
            (units (layer-units output-layer))
            (output-values (mapcar #'unit-output-value units)))
-      (if (d-function-take-value-set function)
-          (diff-funcall function output-values expected)
-          (mapcar #'(lambda (value)
-                      (diff-funcall function value expected))
-                  output-values)))))
+      (diff-funcall function output-values expected))))
