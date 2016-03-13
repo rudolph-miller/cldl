@@ -39,8 +39,10 @@
   (with-slots (fn) d-function
     (set-funcallable-instance-function
      d-function
-     #'(lambda (&rest args)
-         (apply fn args)))))
+     #'(lambda (value &optional (expected nil expected-given))
+         (if expected-given
+             (funcall fn value expected)
+             (funcall fn value))))))
 
 (defmethod print-object ((d-function d-function) stream)
   (print-unreadable-object (d-function stream :type t :identity t)
@@ -48,9 +50,11 @@
       (format stream "~a" name))))
 
 @export
-(defun diff-funcall (d-function &rest args)
+(defun diff-funcall (d-function value &optional (expected nil expected-given))
   (let ((diff (d-function-diff d-function)))
-    (apply diff args)))
+    (if expected-given
+        (funcall diff value expected)
+        (funcall diff value))))
 
 @export
 (defun find-d-function (name)
