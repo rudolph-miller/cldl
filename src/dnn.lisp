@@ -22,6 +22,7 @@
                 #:layer-activation-function
                 #:layer-error-function
                 #:connect-layers
+                #:propagate
                 #:activate
                 #:back-propagate-hidden-layer
                 #:back-propagate-output-layer)
@@ -81,14 +82,6 @@
     (setf (dnn-connections dnn)
           (connect-layers (dnn-layers dnn)))))
 
-(defun calculate-unit-input-value (unit)
-  (reduce #'+
-          (mapcar #'(lambda (connection)
-                      (* (unit-output-value
-                          (connection-left-unit connection))
-                         (connection-weight connection)))
-                  (unit-left-connections unit))))
-
 (defun normalize-input (input means standard-deviations)
   (mapcar #'(lambda (value mean standard-deviation)
               (normalize value mean standard-deviation))
@@ -100,26 +93,15 @@
 "Returns output values"
 (defun predict (dnn input)
   (dolist (layer (dnn-layers dnn))
-    (etypecase layer
-      (input-layer
+    (when (typep layer 'input-layer)
        (map nil
             #'(lambda (input-unit value)
-                (setf (unit-input-value input-unit) value
-                      (unit-output-value input-unit) value))
+                (setf (unit-input-value input-unit) value))
             (layer-units layer)
             (normalize-input input
                              (dnn-input-means dnn)
                              (dnn-input-standard-deviations dnn))))
-      ((or hidden-layer output-layer)
-       (let ((units (layer-units layer)))
-         (dolist (unit units)
-           (setf (unit-input-value unit)
-                 (calculate-unit-input-value unit)))
-         (map nil
-              #'(lambda (unit value)
-                  (setf (unit-output-value unit) value))
-              units
-              (activate layer))))))
+    (propagate layer))
   (mapcar #'unit-output-value
           (layer-units (output-layer (dnn-layers dnn)))))
 

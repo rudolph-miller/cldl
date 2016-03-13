@@ -10,10 +10,12 @@
                 #:bias-unit
                 #:unit-input-value
                 #:unit-output-value
+                #:unit-left-connections
                 #:unit-right-connections
                 #:unit-delta)
   (:import-from #:cldl.connection
                 #:connect-units
+                #:connection-left-unit
                 #:connection-right-unit
                 #:connection-weight)
   (:import-from #:cldl.differentiable-function
@@ -124,6 +126,31 @@
                           (layer-should-connect-units right-layer))))
           layers
           (cdr layers)))
+
+(defun calculate-unit-input-value (unit)
+  (reduce #'+
+          (mapcar #'(lambda (connection)
+                      (* (unit-output-value
+                          (connection-left-unit connection))
+                         (connection-weight connection)))
+                  (unit-left-connections unit))))
+
+@export
+(defgeneric propagate (layer)
+  (:method ((layer layer))
+    (let ((units (layer-units layer)))
+    (dolist (unit units)
+      (setf (unit-input-value unit)
+            (calculate-unit-input-value unit)))
+    (map nil
+         #'(lambda (unit value)
+             (setf (unit-output-value unit) value))
+         units
+         (activate layer)))))
+
+(defmethod propagate ((layer input-layer))
+  (dolist (unit (layer-units layer))
+    (setf (unit-output-value unit) (unit-input-value unit))))
 
 @export
 (defgeneric activate (layer)
